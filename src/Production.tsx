@@ -175,7 +175,7 @@ function Production() {
     : 0
 
   const millingTonsPerHour = millingHours > 0
-    ? Math.max(0, totalKg - 5000) / 1000 / millingHours
+    ? totalKg / 1000 / millingHours
     : 0
 
   const periodsValid = periodData.length > 0 &&
@@ -553,8 +553,7 @@ function Production() {
             <span className="eyebrow">PROCESSO DE MOAGEM</span>
             <h2>Necessidade estimada do moinho</h2>
             <p className="section-description">
-              Cálculo considerando 5 toneladas disponíveis no início e moagem
-              durante o primeiro período informado.
+              Estimativa da vazão média necessária, considerando a massa total do lote e a duração do primeiro período informado.
             </p>
           </div>
           <Wheat size={24} />
@@ -562,16 +561,16 @@ function Production() {
 
         <div className="period-summary">
           <div>
-            <span>Estoque inicial considerado</span>
-            <strong>5.000 kg</strong>
+            <span>Base do cálculo</span>
+            <strong>Massa total do lote</strong>
           </div>
           <div>
             <span>Produção total em massa</span>
             <strong>{formatNumber(totalKg)} kg</strong>
           </div>
           <div>
-            <span>Necessidade além do silo inicial</span>
-            <strong>{formatNumber(Math.max(0, totalKg - 5000))} kg</strong>
+            <span>Tempo do primeiro período</span>
+            <strong>{formatNumber(millingHours)} h</strong>
           </div>
           <div>
             <span>Capacidade necessária do moinho</span>
@@ -580,9 +579,7 @@ function Production() {
         </div>
 
         <p className="map-note">
-          Este cálculo é uma referência de capacidade média. Não representa
-          uma medição real do moinho nem considera perdas, variações de
-          densidade ou alterações de consumo durante o turno.
+          Este valor é uma estimativa de vazão necessária, não uma medição real da capacidade do moinho. O sistema não presume saldo inicial de silo nem desconta matéria-prima automaticamente.
         </p>
       </section>
 
