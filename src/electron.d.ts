@@ -50,6 +50,22 @@ interface ProductionRecord {
   }>
 }
 
+interface ProductFormulaItem {
+  materialId: string
+  quantityKg: number
+  materialName?: string
+  costPerKg?: number
+}
+
+interface DatabaseProduct {
+  id: string
+  name: string
+  brand: string
+  bagWeightKg: number
+  salePrice: number
+  formula: ProductFormulaItem[]
+}
+
 interface StockMaterial {
   id: string
   name: string
@@ -95,6 +111,12 @@ interface Window {
       list: (filters?: {
         date?: string
       }) => Promise<ProductionRecord[]>
+    }
+
+    products: {
+      list: () => Promise<DatabaseProduct[]>
+      save: (product: DatabaseProduct) => Promise<{ success: boolean }>
+      delete: (productId: string) => Promise<{ success: boolean }>
     }
 
     stock: {
