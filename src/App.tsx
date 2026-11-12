@@ -44,7 +44,13 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(true)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [selectedMachine, setSelectedMachine] = useState<string | null>(null)
+  const [databaseStatus, setDatabaseStatus] = useState('Verificando...')
 
+  useEffect(() => {
+    window.mantiqueira.database.getStatus()
+      .then(() => setDatabaseStatus('Banco local conectado'))
+      .catch(() => setDatabaseStatus('Banco local desconectado'))
+  }, [])
   const currentPage = menuItems.find((item) => item.id === activePage)?.label ?? 'Visão geral'
   const selected = machines.find((machine) => machine.name === selectedMachine)
 
