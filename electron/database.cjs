@@ -1,3 +1,9 @@
+
+const { app } = require('electron')
+const path = require('path')
+const fs = require('fs')
+const initSqlJs = require('sql.js')
+
 let db
 let databasePath
 
@@ -33,9 +39,113 @@ const initialFormula = [
 
 function addColumnIfMissing(table, column, definition) {
   const columns = db.exec(`PRAGMA table_info(${table})`)
+
   const exists = columns.length > 0 &&
-@@ -17,6 +47,46 @@ function addColumnIfMissing(table, column, definition) {
+    columns[0].values.some((row) => row[1] === column)
+
+  if (!exists) {
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
   }
+}
+
+function createTables() {
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS raw_materials (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      cost_per_kg REAL NOT NULL DEFAULT 0,
+      stock_kg REAL NOT NULL DEFAULT 0,
+      minimum_stock_kg REAL NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      brand TEXT NOT NULL,
+      bag_weight_kg REAL NOT NULL DEFAULT 0,
+      sale_price REAL NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS formula_ingredients (
+      product_id TEXT NOT NULL,
+      material_id TEXT NOT NULL,
+      quantity_kg REAL NOT NULL DEFAULT 0,
+      PRIMARY KEY (product_id, material_id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (material_id) REFERENCES raw_materials(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id TEXT NOT NULL,
+      bags INTEGER NOT NULL DEFAULT 0,
+      total_kg REAL NOT NULL DEFAULT 0,
+      ingredient_cost REAL NOT NULL DEFAULT 0,
+      estimated_revenue REAL NOT NULL DEFAULT 0,
+      production_date TEXT NOT NULL,
+      notes TEXT,
+      start_time TEXT,
+      end_time TEXT,
+      total_minutes INTEGER NOT NULL DEFAULT 0,
+      stoppage_minutes INTEGER NOT NULL DEFAULT 0,
+      milling_tons_per_hour REAL NOT NULL DEFAULT 0,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      production_id INTEGER NOT NULL,
+      period_number INTEGER NOT NULL,
+      start_time TEXT,
+      end_time TEXT,
+      duration_minutes INTEGER NOT NULL DEFAULT 0,
+      frequency_hz REAL NOT NULL DEFAULT 0,
+      bags INTEGER NOT NULL DEFAULT 0,
+      total_kg REAL NOT NULL DEFAULT 0,
+      tons_per_hour REAL NOT NULL DEFAULT 0,
+      is_estimated INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (production_id)
+        REFERENCES production_records(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS stock_movements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      material_id TEXT NOT NULL,
+      movement_type TEXT NOT NULL,
+      quantity_kg REAL NOT NULL,
+      unit_cost REAL NOT NULL DEFAULT 0,
+      movement_date TEXT NOT NULL,
+      description TEXT,
+      FOREIGN KEY (material_id) REFERENCES raw_materials(id)
+    );
+  `)
+}
+
+function updateOldTables() {
+  addColumnIfMissing('production_records', 'start_time', 'TEXT')
+  addColumnIfMissing('production_records', 'end_time', 'TEXT')
+  addColumnIfMissing(
+    'production_records',
+    'total_minutes',
+    'INTEGER NOT NULL DEFAULT 0',
+  )
+  addColumnIfMissing(
+    'production_records',
+    'stoppage_minutes',
+    'INTEGER NOT NULL DEFAULT 0',
+  )
+  addColumnIfMissing(
+    'production_records',
+    'milling_tons_per_hour',
+    'REAL NOT NULL DEFAULT 0',
+  )
 }
 
 function seedInitialData() {
@@ -57,19 +167,19 @@ function seedInitialData() {
     )
   }
 
-  const formulaExists = db.exec(
-    `SELECT COUNT(*) FROM formula_ingredients
-     WHERE product_id = 'timao-adulto'`,
-  )
+  const result = db.exec(`
+    SELECT COUNT(*) FROM formula_ingredients
+    WHERE product_id = 'timao-adulto'
+  `)
 
-  const formulaCount = formulaExists.length > 0
-    ? formulaExists[0].values[0][0]
+  const formulaCount = result.length > 0
+    ? result[0].values[0][0]
     : 0
 
   if (formulaCount === 0) {
     for (const ingredient of initialFormula) {
       db.run(
-        `INSERT INTO formula_ingredients
+        `INSERT OR IGNORE INTO formula_ingredients
          (product_id, material_id, quantity_kg)
          VALUES (?, ?, ?)`,
         ['timao-adulto', ingredient[0], ingredient[1]],
@@ -79,21 +189,75 @@ function seedInitialData() {
 }
 
 async function initializeDatabase() {
-  const dataDirectory = path.join(app.getPath('userData'), 'database')
+  const dataDirectory = path.join(
+    app.getPath('userData'),
+    'database',
+  )
 
-@@ -110,13 +180,14 @@ async function initializeDatabase() {
-    );
-  `)
+  fs.mkdirSync(dataDirectory, { recursive: true })
 
-  // Atualiza registros antigos sem apagar dados.
-  addColumnIfMissing('production_records', 'start_time', 'TEXT')
-  addColumnIfMissing('production_records', 'end_time', 'TEXT')
-  addColumnIfMissing('production_records', 'total_minutes', 'INTEGER DEFAULT 0')
-  addColumnIfMissing('production_records', 'stoppage_minutes', 'INTEGER DEFAULT 0')
-  addColumnIfMissing('production_records', 'milling_tons_per_hour', 'REAL DEFAULT 0')
+  databasePath = path.join(dataDirectory, 'mantiqueira.db')
 
+  // Localiza o WebAssembly dentro do pacote instalado.
+  const SQL = await initSqlJs({
+    locateFile: (file) => {
+      return path.join(
+        path.dirname(require.resolve('sql.js')),
+        file,
+      )
+    },
+  })
+
+  // Reabre o banco existente ou cria um novo.
+  if (fs.existsSync(databasePath)) {
+    const fileBuffer = fs.readFileSync(databasePath)
+    db = new SQL.Database(new Uint8Array(fileBuffer))
+  } else {
+    db = new SQL.Database()
+  }
+
+  createTables()
+  updateOldTables()
   seedInitialData()
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_production_date
     ON production_records(production_date);
+
+    CREATE INDEX IF NOT EXISTS idx_period_production
+    ON production_periods(production_id);
+
+    CREATE INDEX IF NOT EXISTS idx_stock_movement_date
+    ON stock_movements(movement_date);
+  `)
+
+  saveDatabase()
+
+  return databasePath
+}
+
+function getDatabase() {
+  if (!db) {
+    throw new Error('Banco de dados ainda não foi inicializado.')
+  }
+
+  return db
+}
+
+function saveDatabase() {
+  if (!db || !databasePath) {
+    throw new Error('Não foi possível salvar: banco não inicializado.')
+  }
+
+  const dataDirectory = path.dirname(databasePath)
+  fs.mkdirSync(dataDirectory, { recursive: true })
+
+  const data = db.export()
+  fs.writeFileSync(databasePath, Buffer.from(data))
+}
+
+module.exports = {
+  initializeDatabase,
+  getDatabase,
+  saveDatabase,
+}
