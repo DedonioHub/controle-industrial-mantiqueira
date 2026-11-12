@@ -3,7 +3,7 @@ import Finance from './Finance'
 import Products from './Products'
 import Stock from './Stock'
 import Production from './Production'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   Bell,
