@@ -1,4 +1,4 @@
-
+import Production from './Production'
 import { useState } from 'react'
 import {
   Activity,
@@ -158,7 +158,9 @@ function App() {
                 </article>
               </section>
             </>
-          ) : (
+          ) : activePage === 'production' ? (
+  <Production />
+) : (
             <section className="panel module-placeholder">
               <div className="placeholder-icon"><ClipboardList size={30} /></div>
               <h2>{currentPage}</h2>
