@@ -16,12 +16,24 @@ function registerDatabaseHandlers() {
 
   ipcMain.handle('stock:list', () => {
     const db = getDatabase()
-    const result = db.exec(`SELECT id, name, cost_per_kg, stock_kg, minimum_stock_kg
+    const statement = db.prepare(`SELECT id, name, cost_per_kg, stock_kg, minimum_stock_kg
       FROM raw_materials ORDER BY name`)
-    return (result[0]?.values || []).map((row) => ({
-      id: row[0], name: row[1], costPerKg: Number(row[2] || 0),
-      stockKg: Number(row[3] || 0), minimumStockKg: Number(row[4] || 0),
-    }))
+    const materials = []
+    try {
+      while (statement.step()) {
+        const row = statement.getAsObject()
+        materials.push({
+          id: String(row.id),
+          name: String(row.name),
+          costPerKg: Number(row.cost_per_kg || 0),
+          stockKg: Number(row.stock_kg || 0),
+          minimumStockKg: Number(row.minimum_stock_kg || 0),
+        })
+      }
+    } finally {
+      statement.free()
+    }
+    return materials
   })
 
   ipcMain.handle('stock:update-material', (_event, material) => {
