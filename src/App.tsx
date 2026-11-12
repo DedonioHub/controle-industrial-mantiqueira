@@ -1,3 +1,4 @@
+import Products from './Products'
 import Stock from './Stock'
 import Production from './Production'
 import { useState } from 'react'
@@ -163,6 +164,8 @@ function App() {
   <Production />
 ) : activePage === 'stock' ? (
   <Stock />
+) : activePage === 'products' ? (
+  <Products />
 ) : (
             <section className="panel module-placeholder">
               <div className="placeholder-icon"><ClipboardList size={30} /></div>
