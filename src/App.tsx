@@ -1,3 +1,4 @@
+import Finance from './Finance'
 import Products from './Products'
 import Stock from './Stock'
 import Production from './Production'
@@ -166,6 +167,8 @@ function App() {
   <Stock />
 ) : activePage === 'products' ? (
   <Products />
+) : activePage === 'finance' ? (
+  <Finance />
 ) : (
             <section className="panel module-placeholder">
               <div className="placeholder-icon"><ClipboardList size={30} /></div>
