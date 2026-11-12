@@ -6,6 +6,8 @@ import {
   Wallet,
   Calculator,
   Package,
+  CalendarDays,
+  Search,
 } from 'lucide-react'
 import {
   formatCurrency,
@@ -18,6 +20,9 @@ function Finance() {
   const [productionRecords, setProductionRecords] = useState<ProductionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [productId, setProductId] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [historySearch, setHistorySearch] = useState('')
 
   useEffect(() => {
     let active = true
@@ -34,12 +39,24 @@ function Finance() {
     }).catch((error) => console.error(error)).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
-  const [bags, setBags] = useState('890')
+  const [bags, setBags] = useState('0')
   const [extraCosts, setExtraCosts] = useState('0')
 
   const product = products.find((item) => item.id === productId)
   const quantity = Math.max(0, Number(bags) || 0)
   const expenses = Math.max(0, Number(extraCosts) || 0)
+
+  const filteredProduction = useMemo(() => productionRecords.filter((record) => {
+    const date = record.production_date || ''
+    const name = (record.product_name || record.product_id).toLowerCase()
+    return (!fromDate || date >= fromDate) &&
+      (!toDate || date <= toDate) &&
+      name.includes(historySearch.toLowerCase())
+  }), [productionRecords, fromDate, toDate, historySearch])
+
+  const recordedRevenue = filteredProduction.reduce((sum, item) => sum + Number(item.estimated_revenue || 0), 0)
+  const recordedCost = filteredProduction.reduce((sum, item) => sum + Number(item.ingredient_cost || 0), 0)
+  const recordedBags = filteredProduction.reduce((sum, item) => sum + Number(item.bags || 0), 0)
 
   const financial = useMemo(() => {
     if (!product) return null
@@ -76,11 +93,15 @@ function Finance() {
   return (
     <div className="finance-page">
       {loading && <div className="empty-state"><strong>Carregando dados financeiros...</strong></div>}
+      <section className="finance-hero">
+        <div><span className="eyebrow">GESTÃO E RENTABILIDADE</span><h2>Financeiro industrial</h2><p>Compare a rentabilidade estimada dos produtos e acompanhe os valores registrados nos apontamentos de produção.</p></div>
+        <div className="finance-hero-mark"><CircleDollarSign size={30}/><span>CONTROLE GERENCIAL</span></div>
+      </section>
       <section className="panel finance-form">
         <div className="section-heading">
           <div>
             <span className="eyebrow">GESTÃO FINANCEIRA</span>
-            <h2>Simulador de rentabilidade</h2>
+            <h2>Simulador de lote</h2>
           </div>
           <CircleDollarSign size={23} />
         </div>
@@ -101,7 +122,7 @@ function Finance() {
           </label>
 
           <label className="field">
-            <span>Quantidade de sacos</span>
+            <span>Quantidade de sacos para simular</span>
             <input
               type="number"
               min="0"
@@ -216,15 +237,31 @@ function Finance() {
         </>
       )}
 
-      <section className="panel finance-breakdown">
-        <div className="section-heading"><div><span className="eyebrow">PRODUÇÃO REGISTRADA</span><h2>Histórico financeiro estimado</h2></div></div>
-        <div className="finance-line"><span>Apontamentos gravados</span><strong>{productionRecords.length}</strong></div>
-        <div className="finance-line"><span>Receita potencial registrada</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.estimated_revenue || 0), 0))}</strong></div>
-        <div className="finance-line"><span>Custo de ingredientes registrado</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.ingredient_cost || 0), 0))}</strong></div>
-        <div className="finance-line"><span>Resultado bruto estimado</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.estimated_revenue || 0) - Number(item.ingredient_cost || 0), 0))}</strong></div>
+      <section className="panel finance-history">
+        <div className="section-heading"><div><span className="eyebrow">DADOS DO BANCO LOCAL</span><h2>Resultado dos apontamentos</h2><p className="section-description">Valores históricos gravados no momento de cada produção, sem recalcular custos antigos.</p></div><CalendarDays size={22}/></div>
+        <div className="finance-history-filters">
+          <label className="field"><span>De</span><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)}/></label>
+          <label className="field"><span>Até</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)}/></label>
+          <label className="products-search"><Search size={16}/><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Filtrar por produto..."/></label>
+        </div>
+        <div className="finance-history-kpis">
+          <div><span>Apontamentos</span><strong>{filteredProduction.length}</strong></div>
+          <div><span>Sacos produzidos</span><strong>{formatNumber(recordedBags, 0)}</strong></div>
+          <div><span>Receita estimada</span><strong>{formatCurrency(recordedRevenue)}</strong></div>
+          <div><span>Custo de ingredientes</span><strong>{formatCurrency(recordedCost)}</strong></div>
+          <div><span>Resultado bruto estimado</span><strong>{formatCurrency(recordedRevenue - recordedCost)}</strong></div>
+        </div>
+        <div className="table-scroll"><table className="consumption-table finance-table"><thead><tr><th>Data</th><th>Produto</th><th>Sacos</th><th>Receita estimada</th><th>Custo ingredientes</th><th>Resultado</th></tr></thead><tbody>
+          {filteredProduction.map((record) => {
+            const revenue = Number(record.estimated_revenue || 0)
+            const cost = Number(record.ingredient_cost || 0)
+            return <tr key={record.id}><td>{record.production_date ? new Date(record.production_date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td><td>{record.product_name || record.product_id}</td><td>{formatNumber(record.bags, 0)}</td><td>{formatCurrency(revenue)}</td><td>{formatCurrency(cost)}</td><td>{formatCurrency(revenue - cost)}</td></tr>
+          })}
+        </tbody></table></div>
+        {filteredProduction.length === 0 && <div className="empty-state"><Package size={25}/><strong>Nenhum apontamento nesse filtro.</strong><span>Registros de produção aparecerão aqui depois de salvos.</span></div>}
       </section>
       <div className="production-warning">
-        <strong>Indicadores gerenciais estimados — não é DRE contábil.</strong>
+        <strong>Leitura gerencial — não substitui a DRE contábil.</strong>
         <p>A simulação usa o cadastro atual de produtos, fórmulas e custos. O histórico soma os valores gravados em cada apontamento, preservando o custo e a receita registrados naquela data. Não inclui impostos, comissões, fretes, perdas ou despesas administrativas que não tenham sido lançadas.</p>
       </div>
     </div>
