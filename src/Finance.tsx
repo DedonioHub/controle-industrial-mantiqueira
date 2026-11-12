@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CircleDollarSign,
   TrendingUp,
@@ -7,16 +7,33 @@ import {
   Calculator,
   Package,
 } from 'lucide-react'
-import { products, rawMaterials } from './data/initialData'
 import {
   formatCurrency,
   formatNumber,
-  getFormulaCost,
-  getFormulaWeight,
 } from './utils/calculations'
 
 function Finance() {
-  const [productId, setProductId] = useState(products[0]?.id ?? '')
+  const [products, setProducts] = useState<DatabaseProduct[]>([])
+  const [rawMaterials, setRawMaterials] = useState<StockMaterial[]>([])
+  const [productionRecords, setProductionRecords] = useState<ProductionRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [productId, setProductId] = useState('')
+
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      window.mantiqueira.products.list(),
+      window.mantiqueira.stock.list(),
+      window.mantiqueira.production.list(),
+    ]).then(([productData, materialData, productionData]) => {
+      if (!active) return
+      setProducts(productData)
+      setRawMaterials(materialData)
+      setProductionRecords(productionData)
+      setProductId((current) => productData.some((item) => item.id === current) ? current : (productData[0]?.id ?? ''))
+    }).catch((error) => console.error(error)).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
   const [bags, setBags] = useState('890')
   const [extraCosts, setExtraCosts] = useState('0')
 
@@ -27,8 +44,11 @@ function Finance() {
   const financial = useMemo(() => {
     if (!product) return null
 
-    const formulaWeight = getFormulaWeight(product)
-    const formulaCost = getFormulaCost(product)
+    const formulaWeight = product.formula.reduce((sum, item) => sum + item.quantityKg, 0)
+    const formulaCost = product.formula.reduce((sum, item) => {
+      const material = rawMaterials.find((raw) => raw.id === item.materialId)
+      return sum + item.quantityKg * (material?.costPerKg ?? 0)
+    }, 0)
 
     const ingredientCostPerKg =
       formulaWeight > 0 ? formulaCost / formulaWeight : 0
@@ -51,10 +71,11 @@ function Finance() {
       margin: revenue > 0 ? (result / revenue) * 100 : 0,
       costPerKg: ingredientCostPerKg,
     }
-  }, [product, quantity, expenses])
+  }, [product, quantity, expenses, rawMaterials])
 
   return (
     <div className="finance-page">
+      {loading && <div className="empty-state"><strong>Carregando dados financeiros...</strong></div>}
       <section className="panel finance-form">
         <div className="section-heading">
           <div>
@@ -195,9 +216,16 @@ function Finance() {
         </>
       )}
 
+      <section className="panel finance-breakdown">
+        <div className="section-heading"><div><span className="eyebrow">PRODUÇÃO REGISTRADA</span><h2>Histórico financeiro estimado</h2></div></div>
+        <div className="finance-line"><span>Apontamentos gravados</span><strong>{productionRecords.length}</strong></div>
+        <div className="finance-line"><span>Receita potencial registrada</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.estimated_revenue || 0), 0))}</strong></div>
+        <div className="finance-line"><span>Custo de ingredientes registrado</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.ingredient_cost || 0), 0))}</strong></div>
+        <div className="finance-line"><span>Resultado bruto estimado</span><strong>{formatCurrency(productionRecords.reduce((sum, item) => sum + Number(item.estimated_revenue || 0) - Number(item.ingredient_cost || 0), 0))}</strong></div>
+      </section>
       <div className="production-warning">
-        <strong>Simulação financeira, não é DRE contábil.</strong>
-        <p>Este módulo calcula receita potencial e resultado estimado com base nos ingredientes e despesas informadas. Ainda não considera impostos, comissões, fretes, perdas, despesas administrativas ou outras contas não lançadas. Os dados não são salvos permanentemente nesta versão.</p>
+        <strong>Indicadores gerenciais estimados — não é DRE contábil.</strong>
+        <p>A simulação usa o cadastro atual de produtos, fórmulas e custos. O histórico soma os valores gravados em cada apontamento, preservando o custo e a receita registrados naquela data. Não inclui impostos, comissões, fretes, perdas ou despesas administrativas que não tenham sido lançadas.</p>
       </div>
     </div>
   )
