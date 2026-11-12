@@ -1887,3 +1887,139 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* MODULOS DE GESTAO - PRODUTOS, FINANCEIRO E RELATORIOS */
+.products-page,.finance-page,.reports-page {
+  display:flex; flex-direction:column; gap:20px; width:100%; max-width:1500px;
+}
+.products-hero,.finance-hero,.reports-hero {
+  display:flex; align-items:center; justify-content:space-between; gap:24px;
+  padding:26px 28px; border:1px solid #29445b; border-radius:15px;
+  background:radial-gradient(ellipse at 90% 0%,rgba(42,132,171,.19),transparent 42%),linear-gradient(120deg,#13263a,#0e1928);
+}
+.products-hero h2,.finance-hero h2,.reports-hero h2 {
+  margin:0 0 7px; color:#e8f3fc; font:600 22px 'Space Grotesk',sans-serif;
+}
+.products-hero p,.finance-hero p,.reports-hero p {
+  margin:0; max-width:700px; color:#8da4bb; font-size:12px; line-height:1.7;
+}
+.products-metrics,.finance-kpis,.reports-kpis {
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;
+}
+.products-metrics .kpi-card,.finance-kpis .kpi-card,.reports-kpis .kpi-card {
+  min-width:0; background:linear-gradient(145deg,#142338,#0d1725); border-color:#2a4057;
+}
+.products-toolbar {
+  display:flex; align-items:center; justify-content:space-between; gap:18px; padding:20px 24px;
+}
+.products-toolbar h2 { margin:0 0 6px; font-size:17px; }
+.products-toolbar p { margin:0; color:#8195aa; font-size:11px; }
+.products-layout {
+  display:grid; grid-template-columns:minmax(250px,.78fr) minmax(0,2fr); gap:18px; align-items:start;
+}
+.product-list-panel,.formula-panel,.finance-form,.finance-breakdown,.finance-history,.reports-panel,.reports-trend,.stoppage-summary {
+  min-width:0; padding:23px; background:linear-gradient(145deg,#111d2d,#0d1624); border:1px solid #263a50; border-radius:14px;
+}
+.product-list-panel h2 { margin:0 0 17px; font:600 17px 'Space Grotesk',sans-serif; }
+.products-search {
+  display:flex; align-items:center; gap:10px; min-height:42px; padding:0 12px; margin:0 0 14px;
+  color:#7d9ab3; background:#091522; border:1px solid #30445b; border-radius:9px;
+}
+.products-search input { min-width:0; width:100%; color:#e6eef8; background:transparent; border:0; outline:0; font:inherit; font-size:11px; }
+.products-search input::placeholder { color:#647b91; }
+.product-select {
+  width:100%; display:flex; align-items:center; gap:12px; padding:13px; margin:7px 0;
+  color:#91a9bf; text-align:left; background:#0c1928; border:1px solid #243a50; border-radius:10px; transition:.18s ease;
+}
+.product-select:hover { border-color:#477696; background:#12263a; }
+.product-select.selected { color:#8bd4f4; background:linear-gradient(100deg,#163149,#102236); border-color:#39769a; box-shadow:inset 3px 0 #58b6e3; }
+.product-select span { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.product-select strong { color:#e0edf8; font-size:11px; }
+.product-select small { color:#8198ae; font-size:10px; }
+.product-empty { color:#8195aa; font-size:11px; }
+.formula-panel .section-heading { margin-bottom:20px; }
+.formula-panel .section-heading h2 { margin:0; font-size:18px; }
+.formula-panel .product-info { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 20px; }
+.formula-panel .product-info span { padding:9px 12px; color:#8fa7bc; background:#0a1725; border:1px solid #263c52; border-radius:8px; font-size:10px; }
+.formula-panel .product-info strong { color:#d8eafa; }
+.product-detail-kpis {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:16px 0 22px;
+}
+.product-detail-kpis div,.finance-history-kpis div {
+  display:flex; flex-direction:column; gap:7px; padding:13px; background:#0a1725; border:1px solid #293e54; border-radius:9px;
+}
+.product-detail-kpis span,.finance-history-kpis span { color:#8298ad; font-size:10px; }
+.product-detail-kpis strong,.finance-history-kpis strong { color:#c9e9fa; font:600 15px 'Space Grotesk',sans-serif; overflow-wrap:anywhere; }
+.formula-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:19px 0 13px; }
+.formula-title h3 { margin:0; color:#d9e8f5; font:600 14px 'Space Grotesk',sans-serif; }
+.ingredient-edit-row { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(120px,.7fr) 38px; gap:10px; margin:9px 0; }
+.ingredient-edit-row select,.ingredient-edit-row input {
+  min-width:0; min-height:40px; padding:0 11px; color:#e5edf6; background:#091522; border:1px solid #30465d; border-radius:8px; font:inherit; font-size:11px; color-scheme:dark;
+}
+.edit-actions,.formula-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:20px; }
+.formula-actions > div { display:flex; flex-direction:column; gap:6px; }
+.formula-actions span { color:#8298ad; font-size:10px; }
+.formula-actions strong { color:#7ed8b9; font:600 20px 'Space Grotesk',sans-serif; }
+.products-page .consumption-table,.finance-page .consumption-table,.reports-page .consumption-table { width:100%; min-width:680px; border-collapse:separate; border-spacing:0; }
+.products-page .consumption-table th,.finance-page .consumption-table th,.reports-page .consumption-table th {
+  padding:13px 12px; color:#91a9bf; background:#142338; border-bottom:1px solid #30445a; text-align:left; font-size:10px; white-space:nowrap;
+}
+.products-page .consumption-table td,.finance-page .consumption-table td,.reports-page .consumption-table td {
+  padding:13px 12px; color:#c3d1df; background:#0d1827; border-bottom:1px solid #25364a; font-size:10px;
+}
+.products-page .consumption-table tfoot td { color:#d8edf8; background:#142338; font-weight:800; }
+.finance-hero-mark { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:130px; color:#6bc5e9; }
+.finance-hero-mark span { color:#7896ae; font-size:8px; font-weight:800; letter-spacing:1.4px; white-space:nowrap; }
+.finance-form .section-heading h2,.finance-history .section-heading h2,.reports-panel .section-heading h2,.reports-trend .section-heading h2 { margin:0 0 5px; font-size:17px; }
+.finance-form .form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+.finance-form .field,.finance-history .field,.reports-filters .field { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.finance-form .field span,.finance-history .field span,.reports-filters .field span { color:#9bb0c4; font-size:10px; font-weight:700; }
+.finance-form .field input,.finance-form .field select,.finance-history .field input,.reports-filters .field select {
+  min-width:0; min-height:43px; padding:0 12px; color:#e6eef8; background:#091522; border:1px solid #30445b; border-radius:8px; font:inherit; font-size:11px; color-scheme:dark;
+}
+.finance-history-filters { display:grid; grid-template-columns:180px 180px minmax(220px,1fr); align-items:end; gap:12px; margin:18px 0; }
+.finance-history-filters .products-search { margin:0; }
+.finance-history-kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; margin:18px 0; }
+.finance-history-kpis strong { font-size:13px; }
+.finance-table { min-width:800px !important; }
+.finance-breakdown .section-heading { margin-bottom:15px; }
+.finance-line { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid #29394c; font-size:11px; }
+.finance-line span { color:#8398ae; }
+.finance-line strong { color:#c5e6f7; }
+.finance-page .production-warning,.products-page .production-warning { padding:15px 18px; color:#9eb2c6; background:#111e2d; border:1px solid #2b4055; border-radius:10px; font-size:11px; line-height:1.7; }
+.finance-page .production-warning strong,.products-page .production-warning strong { color:#cce6f5; }
+.reports-hero { margin-bottom:0; }
+.reports-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.reports-trend .section-heading { margin-bottom:17px; }
+.reports-bars { display:flex; align-items:stretch; gap:16px; min-height:190px; padding:10px 6px 0; }
+.reports-bar-column { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.reports-bar-column > strong { color:#c8eafa; font-size:10px; }
+.reports-bar-track { width:min(100%,62px); flex:1; min-height:110px; display:flex; align-items:flex-end; overflow:hidden; background:#091522; border:1px solid #263c52; border-radius:8px 8px 3px 3px; }
+.reports-bar-track i { display:block; width:100%; min-height:4px; background:linear-gradient(180deg,#64c4eb,#2f8db9); border-radius:6px 6px 0 0; }
+.reports-bar-column > span { color:#8298ad; font-size:9px; }
+.reports-filters { display:grid; grid-template-columns:minmax(200px,1.4fr) repeat(2,minmax(160px,1fr)); gap:12px; align-items:end; margin-bottom:18px; }
+.reports-filters .stock-search { margin:0; }
+.reports-panel .table-scroll { width:100%; overflow-x:auto; }
+.report-footer { display:flex; justify-content:space-between; gap:12px; padding-top:15px; margin-top:14px; border-top:1px solid #29394c; color:#8398ae; font-size:10px; }
+.report-footer strong { color:#c7e9f7; }
+.stoppage-summary { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.stoppage-summary h2 { margin:0 0 6px; font-size:17px; }
+.stoppage-summary p { margin:0; color:#8298ad; font-size:11px; }
+.stoppage-summary > strong { color:#e9c078; font:600 25px 'Space Grotesk',sans-serif; white-space:nowrap; }
+.stoppage-summary small { color:#91a5b9; font-size:11px; }
+@media(max-width:1100px) {
+  .products-metrics,.finance-kpis,.reports-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .products-layout { grid-template-columns:1fr; }
+  .finance-history-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:760px) {
+  .products-hero,.finance-hero,.reports-hero { align-items:flex-start; flex-direction:column; padding:20px; }
+  .finance-form .form-grid,.finance-history-filters,.reports-filters { grid-template-columns:1fr; }
+  .product-detail-kpis { grid-template-columns:1fr; }
+  .finance-history-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .ingredient-edit-row { grid-template-columns:1fr 1fr 38px; }
+  .reports-bars { gap:7px; }
+  .reports-bar-track { width:80%; }
+  .stoppage-summary { align-items:flex-start; flex-direction:column; }
+}
