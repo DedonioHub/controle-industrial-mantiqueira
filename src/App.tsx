@@ -66,7 +66,10 @@ function App() {
         </div>
 
         <div className="topbar-right">
-          <span className="system-status"><i /> Sistema operacional</span>
+          <span className="system-status">
+  <i />
+  {databaseStatus}
+</span>
           <button className="icon-button" onClick={() => setNotificationsOpen(!notificationsOpen)} aria-label="Notificações">
             <Bell size={19} />
             <b className="notification-dot" />
