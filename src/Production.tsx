@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Package,
   Calculator,
@@ -8,74 +8,176 @@ import {
   Plus,
   Trash2,
   Gauge,
+  Save,
+  CalendarDays,
+  Clock,
+  History,
+  RefreshCw,
 } from 'lucide-react'
-import { products } from './data/initialData'
-import {
-  calculateProduction,
-  formatCurrency,
-  formatNumber,
-} from './utils/calculations'
 
-interface ProductionPeriod {
+import { products, rawMaterials } from './data/initialData'
+import { formatCurrency, formatNumber } from './utils/calculations'
+
+interface Period {
   id: number
   frequency: string
-  hours: string
-  bags: string
+  startTime: string
+  endTime: string
+}
+
+function localDate() {
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function timeToMinutes(time: string) {
+  if (!time || !time.includes(':')) return 0
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function durationBetween(start: string, end: string) {
+  let duration = timeToMinutes(end) - timeToMinutes(start)
+  if (duration < 0) duration += 1440
+  return duration
+}
+
+function minutesToHours(minutes: number) {
+  return minutes / 60
+}
+
+function distributeBags(totalBags: number, weights: number[]) {
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0)
+
+  if (totalWeight <= 0) return weights.map(() => 0)
+
+  const exact = weights.map((weight) => totalBags * weight / totalWeight)
+  const rounded = exact.map(Math.floor)
+  let remaining = totalBags - rounded.reduce((sum, value) => sum + value, 0)
+
+  const order = exact
+    .map((value, index) => ({
+      index,
+      remainder: value - rounded[index],
+    }))
+    .sort((a, b) => b.remainder - a.remainder)
+
+  for (let i = 0; i < remaining; i++) {
+    rounded[order[i].index] += 1
+  }
+
+  return rounded
 }
 
 function Production() {
   const [productId, setProductId] = useState(products[0]?.id ?? '')
+  const [productionDate, setProductionDate] = useState(localDate())
   const [bags, setBags] = useState('890')
-  const [periods, setPeriods] = useState<ProductionPeriod[]>([
-    { id: 1, frequency: '9', hours: '7.5', bags: '' },
-    { id: 2, frequency: '6', hours: '5', bags: '' },
+  const [startTime, setStartTime] = useState('07:30')
+  const [endTime, setEndTime] = useState('20:00')
+  const [stoppageMinutes, setStoppageMinutes] = useState('0')
+  const [notes, setNotes] = useState('')
+
+  const [periods, setPeriods] = useState<Period[]>([
+    { id: 1, frequency: '9', startTime: '07:30', endTime: '15:00' },
+    { id: 2, frequency: '6', startTime: '15:00', endTime: '20:00' },
   ])
-  const [startSilo, setStartSilo] = useState('0')
-  const [endSilo, setEndSilo] = useState('0')
-  const [stoppageHours, setStoppageHours] = useState('0')
-  const [millingContinuous, setMillingContinuous] = useState(true)
+
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [history, setHistory] = useState<any[]>([])
+  const [historyDate, setHistoryDate] = useState(localDate())
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   const product = products.find((item) => item.id === productId)
   const quantity = Number(bags)
 
-  const estimate =
-    product && Number.isInteger(quantity) && quantity >= 0
-      ? calculateProduction(product, quantity)
-      : null
+  const totalMinutes = durationBetween(startTime, endTime)
+  const stoppedMinutes = Math.max(0, Number(stoppageMinutes) || 0)
+  const netMinutes = Math.max(0, totalMinutes - stoppedMinutes)
 
-  const totalHours = periods.reduce(
-    (sum, period) => sum + Math.max(0, Number(period.hours) || 0),
-    0,
+  const periodData = useMemo(() => {
+    return periods.map((period) => {
+      const durationMinutes = durationBetween(
+        period.startTime,
+        period.endTime,
+      )
+      const frequencyHz = Math.max(0, Number(period.frequency) || 0)
+
+      return {
+        ...period,
+        durationMinutes,
+        frequencyHz,
+        weight: durationMinutes * frequencyHz,
+      }
+    })
+  }, [periods])
+
+  const estimatedBags = distributeBags(
+    Number.isInteger(quantity) && quantity >= 0 ? quantity : 0,
+    periodData.map((period) => period.weight),
   )
 
-  const weightedFrequency = totalHours > 0
-    ? periods.reduce(
-        (sum, period) =>
-          sum + (Number(period.frequency) || 0) * (Number(period.hours) || 0),
-        0,
-      ) / totalHours
+  const totalKg = product && Number.isInteger(quantity) && quantity >= 0
+    ? quantity * product.bagWeightKg
     : 0
 
-  const productionHours = Math.max(
+  const formulaWeight = product
+    ? product.formula.reduce((sum, item) => sum + item.quantityKg, 0)
+    : 0
+
+  const formulaCost = product
+    ? product.formula.reduce((sum, item) => {
+        const material = rawMaterials.find(
+          (raw) => raw.id === item.materialId,
+        )
+        return sum + item.quantityKg * (material?.costPerKg ?? 0)
+      }, 0)
+    : 0
+
+  const costPerKg = formulaWeight > 0 ? formulaCost / formulaWeight : 0
+  const ingredientCost = totalKg * costPerKg
+  const estimatedRevenue = product ? quantity * product.salePrice : 0
+  const grossResult = estimatedRevenue - ingredientCost
+  const grossMargin = estimatedRevenue > 0
+    ? grossResult / estimatedRevenue * 100
+    : 0
+
+  const productionHours = minutesToHours(netMinutes)
+  const productivity = productionHours > 0
+    ? totalKg / 1000 / productionHours
+    : 0
+
+  const millingHours = periodData.length > 0
+    ? minutesToHours(periodData[0].durationMinutes)
+    : 0
+
+  const millingTonsPerHour = millingHours > 0
+    ? Math.max(0, totalKg - 5000) / 1000 / millingHours
+    : 0
+
+  const periodsValid = periodData.length > 0 &&
+    periodData.every((period) =>
+      period.durationMinutes > 0 && period.frequencyHz > 0,
+    )
+
+  const periodMinutes = periodData.reduce(
+    (sum, period) => sum + period.durationMinutes,
     0,
-    totalHours - Math.max(0, Number(stoppageHours) || 0),
   )
 
-  const productivity =
-    estimate && productionHours > 0
-      ? estimate.totalKg / 1000 / productionHours
-      : 0
+  const timeValid = totalMinutes > 0 &&
+    stoppedMinutes < totalMinutes &&
+    periodMinutes <= totalMinutes
 
-  const measuredBags = periods.reduce(
-    (sum, period) => sum + (period.bags.trim() ? Number(period.bags) || 0 : 0),
-    0,
-  )
-
-  const hasMeasuredBags = periods.some((period) => period.bags.trim() !== '')
+  const quantityValid = Number.isInteger(quantity) && quantity > 0
 
   function updatePeriod(
     id: number,
-    field: keyof ProductionPeriod,
+    field: keyof Period,
     value: string,
   ) {
     setPeriods((current) =>
@@ -86,13 +188,15 @@ function Production() {
   }
 
   function addPeriod() {
+    const lastPeriod = periods[periods.length - 1]
+
     setPeriods((current) => [
       ...current,
       {
         id: Math.max(0, ...current.map((period) => period.id)) + 1,
-        frequency: '9',
-        hours: '',
-        bags: '',
+        frequency: lastPeriod?.frequency || '9',
+        startTime: lastPeriod?.endTime || '20:00',
+        endTime: lastPeriod?.endTime || '20:00',
       },
     ])
   }
@@ -101,18 +205,128 @@ function Production() {
     setPeriods((current) => current.filter((period) => period.id !== id))
   }
 
+  async function loadHistory(date = historyDate) {
+    setLoadingHistory(true)
+
+    try {
+      const records = await window.mantiqueira.production.list({ date })
+      setHistory(records)
+    } catch (error) {
+      console.error(error)
+      setMessage('Não foi possível carregar o histórico.')
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [])
+
+  async function saveProduction() {
+    setMessage('')
+
+    if (!product) {
+      setMessage('Selecione um produto.')
+      return
+    }
+
+    if (!productionDate || !quantityValid) {
+      setMessage('Informe uma data e uma quantidade válida de sacos.')
+      return
+    }
+
+    if (!timeValid || !periodsValid) {
+      setMessage('Confira os horários, paradas e períodos da extrusora.')
+      return
+    }
+
+    const allocatedBags = distributeBags(
+      quantity,
+      periodData.map((period) => period.weight),
+    )
+
+    const periodRecords = periodData.map((period, index) => {
+      const periodBags = allocatedBags[index]
+      const periodKg = periodBags * product.bagWeightKg
+      const hours = minutesToHours(period.durationMinutes)
+
+      return {
+        number: index + 1,
+        startTime: period.startTime,
+        endTime: period.endTime,
+        durationMinutes: period.durationMinutes,
+        frequencyHz: period.frequencyHz,
+        bags: periodBags,
+        totalKg: periodKg,
+        tonsPerHour: hours > 0 ? periodKg / 1000 / hours : 0,
+        isEstimated: true,
+      }
+    })
+
+    setSaving(true)
+
+    try {
+      const result = await window.mantiqueira.production.save({
+        productId,
+        bags: quantity,
+        totalKg,
+        ingredientCost,
+        estimatedRevenue,
+        productionDate,
+        notes,
+        startTime,
+        endTime,
+        totalMinutes,
+        stoppageMinutes: stoppedMinutes,
+        millingTonsPerHour,
+        periods: periodRecords,
+      })
+
+      if (result.success) {
+        setMessage(`Produção salva com sucesso! Registro nº ${result.id}.`)
+        await loadHistory(productionDate)
+        setHistoryDate(productionDate)
+      } else {
+        setMessage('Não foi possível salvar a produção.')
+      }
+    } catch (error) {
+      console.error(error)
+      setMessage(
+        error instanceof Error
+          ? `Erro ao salvar: ${error.message}`
+          : 'Erro ao salvar a produção.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="production-page">
+
       <section className="panel production-form">
         <div className="section-heading">
           <div>
             <span className="eyebrow">REGISTRO INDUSTRIAL</span>
             <h2>Novo apontamento de produção</h2>
+            <p className="section-description">
+              Registre a produção diária da fábrica.
+            </p>
           </div>
-          <Calculator size={22} />
+          <Calculator size={24} />
         </div>
 
         <div className="form-grid">
+          <label className="field">
+            <span>Data da produção</span>
+            <input
+              type="date"
+              value={productionDate}
+              onChange={(event) => setProductionDate(event.target.value)}
+            />
+          </label>
+
           <label className="field">
             <span>Produto fabricado</span>
             <select
@@ -131,11 +345,40 @@ function Production() {
             <span>Total produzido (sacos)</span>
             <input
               type="number"
-              min="0"
+              min="1"
               step="1"
               value={bags}
               onChange={(event) => setBags(event.target.value)}
               placeholder="Ex.: 890"
+            />
+          </label>
+
+          <label className="field">
+            <span>Horário de início</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(event) => setStartTime(event.target.value)}
+            />
+          </label>
+
+          <label className="field">
+            <span>Horário de término</span>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(event) => setEndTime(event.target.value)}
+            />
+          </label>
+
+          <label className="field">
+            <span>Paradas (minutos)</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={stoppageMinutes}
+              onChange={(event) => setStoppageMinutes(event.target.value)}
             />
           </label>
         </div>
@@ -144,9 +387,19 @@ function Production() {
           <div className="product-info">
             <span>Embalagem: <strong>{formatNumber(product.bagWeightKg)} kg</strong></span>
             <span>Preço de venda: <strong>{formatCurrency(product.salePrice)}</strong></span>
-            <span>Fórmula: <strong>{formatNumber(product.formula.reduce((sum, item) => sum + item.quantityKg, 0))} kg</strong></span>
+            <span>Fórmula: <strong>{formatNumber(formulaWeight)} kg</strong></span>
           </div>
         )}
+
+        <label className="field production-notes">
+          <span>Observações do turno</span>
+          <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Registre ocorrências, ajustes ou observações..."
+            rows={3}
+          />
+        </label>
       </section>
 
       <section className="panel production-form">
@@ -154,104 +407,228 @@ function Production() {
           <div>
             <span className="eyebrow">EXTRUSORA E130</span>
             <h2>Períodos de operação</h2>
+            <p className="section-description">
+              Informe os horários e a frequência utilizada em cada período.
+            </p>
           </div>
-          <Gauge size={22} />
+          <Gauge size={24} />
         </div>
 
-        <p className="section-description">
-          Separe o dia em períodos conforme a frequência utilizada na extrusora.
-        </p>
+        <div className="period-list">
+          {periodData.map((period, index) => (
+            <div className="period-row" key={period.id}>
+              <div className="period-title">PERÍODO {index + 1}</div>
 
-        {periods.map((period, index) => (
-          <div className="period-row" key={period.id}>
-            <div className="period-title">PERÍODO {index + 1}</div>
+              <label className="field">
+                <span>Frequência (Hz)</span>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={period.frequency}
+                  onChange={(event) =>
+                    updatePeriod(period.id, 'frequency', event.target.value)
+                  }
+                />
+              </label>
 
-            <label className="field">
-              <span>Frequência (Hz)</span>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={period.frequency}
-                onChange={(event) =>
-                  updatePeriod(period.id, 'frequency', event.target.value)
-                }
-              />
-            </label>
+              <label className="field">
+                <span>Início</span>
+                <input
+                  type="time"
+                  value={period.startTime}
+                  onChange={(event) =>
+                    updatePeriod(period.id, 'startTime', event.target.value)
+                  }
+                />
+              </label>
 
-            <label className="field">
-              <span>Duração (horas)</span>
-              <input
-                type="number"
-                min="0"
-                step="0.25"
-                value={period.hours}
-                onChange={(event) =>
-                  updatePeriod(period.id, 'hours', event.target.value)
-                }
-                placeholder="Ex.: 7.5"
-              />
-            </label>
+              <label className="field">
+                <span>Término</span>
+                <input
+                  type="time"
+                  value={period.endTime}
+                  onChange={(event) =>
+                    updatePeriod(period.id, 'endTime', event.target.value)
+                  }
+                />
+              </label>
 
-            <label className="field">
-              <span>Sacos neste período</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={period.bags}
-                onChange={(event) =>
-                  updatePeriod(period.id, 'bags', event.target.value)
-                }
-                placeholder="Opcional"
-              />
-            </label>
+              <div className="period-metric">
+                <span>Duração</span>
+                <strong>{formatNumber(period.durationMinutes / 60)} h</strong>
+              </div>
 
-            <button
-              className="period-delete"
-              onClick={() => removePeriod(period.id)}
-              aria-label="Excluir período"
-              type="button"
-            >
-              <Trash2 size={17} />
-            </button>
-          </div>
-        ))}
+              <div className="period-metric">
+                <span>Sacos estimados</span>
+                <strong>{formatNumber(estimatedBags[index], 0)}</strong>
+              </div>
+
+              <div className="period-metric">
+                <span>Produção estimada</span>
+                <strong>
+                  {formatNumber(
+                    estimatedBags[index] * (product?.bagWeightKg || 0) / 1000,
+                  )} ton
+                </strong>
+              </div>
+
+              <button
+                className="period-delete"
+                onClick={() => removePeriod(period.id)}
+                aria-label="Excluir período"
+                type="button"
+              >
+                <Trash2 size={17} />
+              </button>
+            </div>
+          ))}
+        </div>
 
         <button className="add-period-button" onClick={addPeriod} type="button">
-          <Plus size={16} /> Adicionar período
+          <Plus size={17} /> Adicionar período
         </button>
 
         <div className="period-summary">
           <div>
-            <span>Horas registradas</span>
-            <strong>{formatNumber(totalHours)} h</strong>
+            <span>Tempo total</span>
+            <strong>{formatNumber(totalMinutes / 60)} h</strong>
           </div>
           <div>
-            <span>Frequência média ponderada</span>
-            <strong>{formatNumber(weightedFrequency)} Hz</strong>
+            <span>Tempo líquido</span>
+            <strong>{formatNumber(netMinutes / 60)} h</strong>
           </div>
           <div>
-            <span>Horas descontando paradas</span>
-            <strong>{formatNumber(productionHours)} h</strong>
+            <span>Frequência média</span>
+            <strong>
+              {formatNumber(
+                periodData.reduce((sum, period) => sum + period.weight, 0) /
+                Math.max(1, periodMinutes),
+              )} Hz
+            </strong>
           </div>
           <div>
-            <span>Produtividade estimada</span>
+            <span>Produtividade média</span>
             <strong>{formatNumber(productivity)} ton/h</strong>
           </div>
         </div>
 
-        <p className="map-note">
-          A produtividade considera o total de sacos informado dividido pelas
-          horas líquidas. Os sacos por período são opcionais, mas devem ser
-          preenchidos para conhecer a produção real em cada frequência.
-        </p>
+        <div className="period-validation">
+          <strong>Distribuição estimada dos sacos</strong>
+          <p>
+            A distribuição considera a frequência e a duração de cada período.
+            É uma estimativa matemática, não uma medição individual da produção.
+          </p>
+          {periodMinutes > totalMinutes && (
+            <p className="production-error">
+              A soma dos períodos ultrapassa o tempo total da produção.
+            </p>
+          )}
+        </div>
+      </section>
 
-        {hasMeasuredBags && (
+      <section className="panel production-form">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">PROCESSO DE MOAGEM</span>
+            <h2>Necessidade estimada do moinho</h2>
+            <p className="section-description">
+              Cálculo considerando 5 toneladas disponíveis no início e moagem
+              durante o primeiro período informado.
+            </p>
+          </div>
+          <Wheat size={24} />
+        </div>
+
+        <div className="period-summary">
+          <div>
+            <span>Estoque inicial considerado</span>
+            <strong>5.000 kg</strong>
+          </div>
+          <div>
+            <span>Produção total em massa</span>
+            <strong>{formatNumber(totalKg)} kg</strong>
+          </div>
+          <div>
+            <span>Necessidade além do silo inicial</span>
+            <strong>{formatNumber(Math.max(0, totalKg - 5000))} kg</strong>
+          </div>
+          <div>
+            <span>Capacidade necessária do moinho</span>
+            <strong>{formatNumber(millingTonsPerHour)} ton/h</strong>
+          </div>
+        </div>
+
+        <p className="map-note">
+          Este cálculo é uma referência de capacidade média. Não representa
+          uma medição real do moinho nem considera perdas, variações de
+          densidade ou alterações de consumo durante o turno.
+        </p>
+      </section>
+
+      <section className="production-results">
+        <article className="kpi-card">
+          <div className="kpi-top">
+            <span>Total produzido</span>
+            <Package size={19} />
+          </div>
+          <strong>{formatNumber(totalKg / 1000)} <small>ton</small></strong>
+          <p>{formatNumber(quantity || 0, 0)} sacos produzidos</p>
+        </article>
+
+        <article className="kpi-card">
+          <div className="kpi-top">
+            <span>Custo de ingredientes</span>
+            <Wheat size={19} />
+          </div>
+          <strong>{formatCurrency(ingredientCost)}</strong>
+          <p>Custo proporcional da fórmula</p>
+        </article>
+
+        <article className="kpi-card">
+          <div className="kpi-top">
+            <span>Faturamento potencial</span>
+            <TrendingUp size={19} />
+          </div>
+          <strong>{formatCurrency(estimatedRevenue)}</strong>
+          <p>Venda potencial de todos os sacos</p>
+        </article>
+
+        <article className="kpi-card">
+          <div className="kpi-top">
+            <span>Margem bruta estimada</span>
+            <Calculator size={19} />
+          </div>
+          <strong>{formatNumber(grossMargin)} <small>%</small></strong>
+          <p>Resultado: {formatCurrency(grossResult)}</p>
+        </article>
+      </section>
+
+      <section className="panel production-form">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">FINALIZAÇÃO</span>
+            <h2>Salvar apontamento</h2>
+            <p className="section-description">
+              O registro será armazenado no banco local do computador.
+            </p>
+          </div>
+          <Save size={24} />
+        </div>
+
+        <button
+          className="add-period-button production-save-button"
+          type="button"
+          onClick={saveProduction}
+          disabled={saving || !quantityValid || !timeValid || !periodsValid}
+        >
+          {saving ? <RefreshCw size={18} /> : <Save size={18} />}
+          {saving ? 'Salvando produção...' : 'Salvar produção no histórico'}
+        </button>
+
+        {message && (
           <div className="period-validation">
-            {measuredBags === quantity
-              ? 'A soma dos sacos dos períodos confere com o total produzido.'
-              : `Atenção: os períodos somam ${formatNumber(measuredBags, 0)} sacos, mas o total informado é ${formatNumber(quantity, 0)}.`}
+            {message}
           </div>
         )}
       </section>
@@ -259,145 +636,75 @@ function Production() {
       <section className="panel production-form">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">CONTROLE DE PROCESSO</span>
-            <h2>Silo pulmão e moagem</h2>
+            <span className="eyebrow">CONSULTA DE REGISTROS</span>
+            <h2>Histórico de produção</h2>
+            <p className="section-description">
+              Consulte os apontamentos gravados por dia.
+            </p>
           </div>
-          <Wheat size={22} />
+          <History size={24} />
         </div>
 
         <div className="form-grid">
           <label className="field">
-            <span>Silo no início (toneladas)</span>
+            <span>Data para consulta</span>
             <input
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={startSilo}
-              onChange={(event) => setStartSilo(event.target.value)}
+              type="date"
+              value={historyDate}
+              onChange={(event) => setHistoryDate(event.target.value)}
             />
           </label>
 
-          <label className="field">
-            <span>Silo no final (toneladas)</span>
-            <input
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={endSilo}
-              onChange={(event) => setEndSilo(event.target.value)}
-            />
-          </label>
-
-          <label className="field">
-            <span>Paradas (horas)</span>
-            <input
-              type="number"
-              min="0"
-              step="0.25"
-              value={stoppageHours}
-              onChange={(event) => setStoppageHours(event.target.value)}
-            />
-          </label>
-
-          <label className="field">
-            <span>Moagem contínua?</span>
-            <select
-              value={millingContinuous ? 'yes' : 'no'}
-              onChange={(event) => setMillingContinuous(event.target.value === 'yes')}
+          <div className="field history-action">
+            <span>Consultar registros</span>
+            <button
+              className="add-period-button"
+              type="button"
+              onClick={() => loadHistory()}
+              disabled={loadingHistory}
             >
-              <option value="yes">Sim</option>
-              <option value="no">Não</option>
-            </select>
-          </label>
+              <CalendarDays size={17} />
+              {loadingHistory ? 'Consultando...' : 'Buscar dia'}
+            </button>
+          </div>
         </div>
 
-        <div className="product-info">
-          <span>Silo inicial: <strong>{formatNumber(Number(startSilo) || 0)} t</strong></span>
-          <span>Silo final: <strong>{formatNumber(Number(endSilo) || 0)} t</strong></span>
-          <span>Moagem: <strong>{millingContinuous ? 'Contínua' : 'Intermitente'}</strong></span>
-        </div>
+        {history.length === 0 ? (
+          <div className="empty-state">
+            <Clock size={25} />
+            <strong>Nenhuma produção encontrada nesta data.</strong>
+            <span>Quando houver lançamentos, eles aparecerão aqui.</span>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table className="consumption-table">
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Sacos</th>
+                  <th>Toneladas</th>
+                  <th>Horário</th>
+                  <th>Períodos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((record) => (
+                  <tr key={record.id}>
+                    <td>{record.product_name || record.product_id}</td>
+                    <td>{formatNumber(record.bags, 0)}</td>
+                    <td>{formatNumber(record.total_kg / 1000)}</td>
+                    <td>
+                      {record.start_time || '--:--'} às {record.end_time || '--:--'}
+                    </td>
+                    <td>{record.periods?.length || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
-      {estimate ? (
-        <>
-          <section className="production-results">
-            <article className="kpi-card">
-              <div className="kpi-top"><span>Total produzido</span><Package size={18} /></div>
-              <strong>{formatNumber(estimate.totalKg / 1000)} <small>ton</small></strong>
-              <p>{formatNumber(estimate.bags, 0)} sacos produzidos</p>
-            </article>
-
-            <article className="kpi-card">
-              <div className="kpi-top"><span>Custo de ingredientes</span><Wheat size={18} /></div>
-              <strong>{formatCurrency(estimate.ingredientCost)}</strong>
-              <p>Custo proporcional da fórmula</p>
-            </article>
-
-            <article className="kpi-card">
-              <div className="kpi-top"><span>Faturamento potencial</span><TrendingUp size={18} /></div>
-              <strong>{formatCurrency(estimate.estimatedRevenue)}</strong>
-              <p>Venda potencial de todos os sacos</p>
-            </article>
-
-            <article className="kpi-card">
-              <div className="kpi-top"><span>Margem bruta estimada</span><Calculator size={18} /></div>
-              <strong>{formatNumber(estimate.grossMarginPercent)} <small>%</small></strong>
-              <p>Antes das demais despesas</p>
-            </article>
-          </section>
-
-          <section className="panel consumption-panel">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">BAIXA PROPORCIONAL SIMULADA</span>
-                <h2>Consumo de matérias-primas</h2>
-              </div>
-              <span className="live-label">SIMULAÇÃO</span>
-            </div>
-
-            <div className="table-scroll">
-              <table className="consumption-table">
-                <thead>
-                  <tr>
-                    <th>Matéria-prima</th>
-                    <th>Consumo (kg)</th>
-                    <th>Custo estimado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estimate.consumption.map((item) => (
-                    <tr key={item.materialId}>
-                      <td>{item.name}</td>
-                      <td>{formatNumber(item.quantityKg)}</td>
-                      <td>{formatCurrency(item.totalCost)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td>{formatNumber(estimate.consumption.reduce((sum, item) => sum + item.quantityKg, 0))} kg</td>
-                    <td>{formatCurrency(estimate.ingredientCost)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
-
-          <div className="production-warning">
-            <strong>Atenção: simulação, não é um lançamento definitivo.</strong>
-            <p>Os valores ainda não alteram o estoque nem ficam salvos no histórico. Isso será implementado com o banco de dados.</p>
-          </div>
-        </>
-      ) : (
-        <section className="panel empty-state">
-          <Calculator size={28} />
-          <strong>Informe uma quantidade válida de sacos.</strong>
-          <span>A quantidade deve ser um número inteiro igual ou maior que zero.</span>
-        </section>
-      )}
     </div>
   )
 }
