@@ -81,6 +81,84 @@ function registerDatabaseHandlers() {
     return { success: true, newStock, newCost }
   })
 
+
+  ipcMain.handle('products:list', () => {
+    const db = getDatabase()
+    const products = db.exec('SELECT id, name, brand, bag_weight_kg, sale_price FROM products ORDER BY name')
+    return (products[0]?.values || []).map((row) => {
+      const product = { id: row[0], name: row[1], brand: row[2], bagWeightKg: Number(row[3]), salePrice: Number(row[4]), formula: [] }
+      const formula = db.prepare(`SELECT fi.material_id, fi.quantity_kg, rm.name, rm.cost_per_kg
+        FROM formula_ingredients fi LEFT JOIN raw_materials rm ON rm.id = fi.material_id
+        WHERE fi.product_id = ? ORDER BY rm.name`)
+      try {
+        formula.bind([product.id])
+        while (formula.step()) {
+          const item = formula.getAsObject()
+          product.formula.push({ materialId: item.material_id, quantityKg: Number(item.quantity_kg), materialName: item.name, costPerKg: Number(item.cost_per_kg || 0) })
+        }
+      } finally { formula.free() }
+      return product
+    })
+  })
+
+  ipcMain.handle('products:save', (_event, product) => {
+    if (!product || !String(product.id || '').trim() || !String(product.name || '').trim() || !String(product.brand || '').trim()) {
+      throw new Error('Nome, marca e identificador do produto são obrigatórios.')
+    }
+    const bagWeight = Number(product.bagWeightKg)
+    const salePrice = Number(product.salePrice)
+    const formula = Array.isArray(product.formula) ? product.formula : []
+    if (!Number.isFinite(bagWeight) || bagWeight <= 0 || !Number.isFinite(salePrice) || salePrice < 0) {
+      throw new Error('Peso e preço de venda inválidos.')
+    }
+    if (formula.some((item) => !item.materialId || !Number.isFinite(Number(item.quantityKg)) || Number(item.quantityKg) < 0)) {
+      throw new Error('Confira os ingredientes e as quantidades da fórmula.')
+    }
+    const db = getDatabase()
+    db.run('BEGIN TRANSACTION')
+    try {
+      db.run(`INSERT INTO products (id, name, brand, bag_weight_kg, sale_price)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET name=excluded.name, brand=excluded.brand,
+        bag_weight_kg=excluded.bag_weight_kg, sale_price=excluded.sale_price`,
+        [product.id, String(product.name).trim(), String(product.brand).trim(), bagWeight, salePrice])
+      db.run('DELETE FROM formula_ingredients WHERE product_id = ?', [product.id])
+      for (const item of formula) {
+        const qty = Number(item.quantityKg)
+        if (qty === 0) continue
+        const exists = db.exec('SELECT id FROM raw_materials WHERE id = ?', [item.materialId])
+        if (!exists.length || !exists[0].values.length) throw new Error('Ingrediente não encontrado no estoque.')
+        db.run('INSERT INTO formula_ingredients (product_id, material_id, quantity_kg) VALUES (?, ?, ?)',
+          [product.id, item.materialId, qty])
+      }
+      db.run('COMMIT')
+    } catch (error) {
+      db.run('ROLLBACK')
+      throw error
+    }
+    saveDatabase()
+    return { success: true }
+  })
+
+  ipcMain.handle('products:delete', (_event, productId) => {
+    const db = getDatabase()
+    const history = db.exec('SELECT COUNT(*) FROM production_records WHERE product_id = ?', [productId])
+    if (Number(history[0]?.values?.[0]?.[0] || 0) > 0) {
+      throw new Error('Este produto possui histórico de produção e não pode ser excluído.')
+    }
+    db.run('BEGIN TRANSACTION')
+    try {
+      db.run('DELETE FROM formula_ingredients WHERE product_id = ?', [productId])
+      db.run('DELETE FROM products WHERE id = ?', [productId])
+      db.run('COMMIT')
+    } catch (error) {
+      db.run('ROLLBACK')
+      throw error
+    }
+    saveDatabase()
+    return { success: true }
+  })
+
   ipcMain.handle('production:save', (_event, record) => {
     const db = getDatabase()
 
