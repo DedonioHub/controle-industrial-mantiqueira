@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Save, X, Trash2, Wheat, Package } from 'lucide-react'
+import { Plus, Pencil, Save, X, Trash2, Wheat, Package, Layers3, BadgeDollarSign, Scale, Search, RefreshCw } from 'lucide-react'
 import { formatCurrency, formatNumber } from './utils/calculations'
 
 function Products() {
@@ -10,6 +10,7 @@ function Products() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   async function loadData() {
     setLoading(true)
@@ -144,6 +145,11 @@ function Products() {
   }
 
   const activeProduct = editing ? draft : selectedProduct
+  const visibleProducts = productList.filter((item) =>
+    `${item.name} ${item.brand}`.toLowerCase().includes(search.toLowerCase()),
+  )
+  const formulaCount = productList.filter((item) => item.formula.reduce((sum, ingredient) => sum + Number(ingredient.quantityKg || 0), 0) > 0).length
+  const averageBagPrice = productList.length > 0 ? productList.reduce((sum, item) => sum + item.salePrice, 0) / productList.length : 0
 
   const formulaWeight = activeProduct
     ? activeProduct.formula.reduce((sum, item) => sum + item.quantityKg, 0)
@@ -160,11 +166,21 @@ function Products() {
     <div className="products-page">
       {error && <div className="stock-message stock-error">{error}</div>}
       {loading && <div className="empty-state"><strong>Carregando cadastro do banco local...</strong></div>}
+      <section className="products-hero">
+        <div><span className="eyebrow">PORTFÓLIO INDUSTRIAL</span><h2>Gestão de produtos e receitas</h2><p>Centralize embalagens, preços de venda e composição técnica de cada produto.</p></div>
+        <button className="add-period-button" onClick={startCreating} type="button"><Plus size={16} /> Novo produto</button>
+      </section>
+      <section className="products-metrics">
+        <article className="kpi-card"><div className="kpi-top"><span>Produtos cadastrados</span><Package size={18}/></div><strong>{productList.length}</strong><p>Itens no catálogo</p></article>
+        <article className="kpi-card"><div className="kpi-top"><span>Fórmulas configuradas</span><Layers3 size={18}/></div><strong>{formulaCount}</strong><p>Composição com ingredientes</p></article>
+        <article className="kpi-card"><div className="kpi-top"><span>Preço médio por saco</span><BadgeDollarSign size={18}/></div><strong>{formatCurrency(averageBagPrice)}</strong><p>Média dos preços cadastrados</p></article>
+        <article className="kpi-card"><div className="kpi-top"><span>Matérias-primas</span><Wheat size={18}/></div><strong>{rawMaterials.length}</strong><p>Ingredientes disponíveis no estoque</p></article>
+      </section>
       <section className="panel products-toolbar">
         <div>
-          <span className="eyebrow">GESTÃO DE PRODUTOS</span>
-          <h2>Produtos e fórmulas</h2>
-          <p>Cadastre produtos, preços e composição das receitas industriais.</p>
+          <span className="eyebrow">CATÁLOGO E FICHA TÉCNICA</span>
+          <h2>Catálogo de produtos</h2>
+          <p>Selecione um produto para consultar ou editar sua ficha técnica.</p>
         </div>
         <button className="add-period-button" onClick={startCreating} type="button">
           <Plus size={16} /> Novo produto
@@ -176,7 +192,8 @@ function Products() {
           <span className="eyebrow">CATÁLOGO</span>
           <h2>Produtos cadastrados</h2>
 
-          {productList.map((product) => (
+          <label className="products-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar produto ou marca..."/></label>
+          {visibleProducts.map((product) => (
             <button
               key={product.id}
               className={`product-select ${selectedId === product.id && !creating ? 'selected' : ''}`}
@@ -194,7 +211,7 @@ function Products() {
             </button>
           ))}
 
-          {productList.length === 0 && (
+          {visibleProducts.length === 0 && (
             <p className="product-empty">Nenhum produto cadastrado.</p>
           )}
         </section>
@@ -311,6 +328,11 @@ function Products() {
                     <span>Venda por saco: <strong>{formatCurrency(activeProduct.salePrice)}</strong></span>
                   </div>
 
+                  <div className="product-detail-kpis">
+                    <div><span>Peso da fórmula</span><strong>{formatNumber(formulaWeight, 3)} kg</strong></div>
+                    <div><span>Custo total do lote de referência</span><strong>{formatCurrency(formulaCost)}</strong></div>
+                    <div><span>Ingredientes</span><strong>{activeProduct.formula.length}</strong></div>
+                  </div>
                   <div className="formula-title">
                     <h3>Ingredientes da fórmula</h3>
                     <button className="edit-button" onClick={startEditing} type="button" aria-label="Editar produto">
@@ -324,6 +346,7 @@ function Products() {
                         <tr>
                           <th>Ingrediente</th>
                           <th>Quantidade (kg)</th>
+                          <th>Participação</th>
                           <th>Custo</th>
                         </tr>
                       </thead>
@@ -337,6 +360,7 @@ function Products() {
                             <tr key={`${ingredient.materialId}-${index}`}>
                               <td>{material?.name ?? 'Não encontrado'}</td>
                               <td>{formatNumber(ingredient.quantityKg, 3)}</td>
+                              <td>{formulaWeight > 0 ? formatNumber(ingredient.quantityKg / formulaWeight * 100) : '0,00'}%</td>
                               <td>{formatCurrency(ingredient.quantityKg * (material?.costPerKg ?? 0))}</td>
                             </tr>
                           )
@@ -346,6 +370,7 @@ function Products() {
                         <tr>
                           <td>Total da fórmula</td>
                           <td>{formatNumber(formulaWeight, 3)} kg</td>
+                          <td>100%</td>
                           <td>{formatCurrency(formulaCost)}</td>
                         </tr>
                       </tfoot>
@@ -379,7 +404,7 @@ function Products() {
         </section>
       </div>
 
-      <div className="production-warning"><strong>Cadastro integrado ao banco local.</strong><p>Alterações de produtos e fórmulas são gravadas no computador. Produtos com histórico de produção não podem ser excluídos para preservar os registros.</p></div>
+      <div className="production-warning"><strong>Dados persistidos no computador.</strong><p>Os cadastros e as fórmulas são gravados no banco local. O custo técnico usa os custos médios atuais do Estoque. Produtos com histórico de produção não podem ser excluídos, para preservar a rastreabilidade.</p></div>
     </div>
   )
 }
