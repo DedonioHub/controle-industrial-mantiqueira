@@ -33,6 +33,8 @@ interface ProductionRecord {
   product_name: string
   bags: number
   total_kg: number
+  ingredient_cost?: number
+  estimated_revenue?: number
   production_date: string
   start_time: string | null
   end_time: string | null
