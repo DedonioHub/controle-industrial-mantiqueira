@@ -15,7 +15,6 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-import { products, rawMaterials } from './data/initialData'
 import { formatCurrency, formatNumber } from './utils/calculations'
 
 interface Period {
@@ -73,7 +72,10 @@ function distributeBags(totalBags: number, weights: number[]) {
 }
 
 function Production() {
-  const [productId, setProductId] = useState(products[0]?.id ?? '')
+  const [products, setProducts] = useState<DatabaseProduct[]>([])
+  const [rawMaterials, setRawMaterials] = useState<StockMaterial[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [productId, setProductId] = useState('')
   const [productionDate, setProductionDate] = useState(localDate())
   const [bags, setBags] = useState('890')
   const [startTime, setStartTime] = useState('07:30')
@@ -91,6 +93,23 @@ function Production() {
   const [history, setHistory] = useState<any[]>([])
   const [historyDate, setHistoryDate] = useState(localDate())
   const [loadingHistory, setLoadingHistory] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    Promise.all([window.mantiqueira.products.list(), window.mantiqueira.stock.list()])
+      .then(([productData, materialData]) => {
+        if (!active) return
+        setProducts(productData)
+        setRawMaterials(materialData)
+        setProductId((current) => productData.some((item) => item.id === current) ? current : (productData[0]?.id ?? ''))
+      })
+      .catch((error) => {
+        console.error(error)
+        if (active) setMessage('Não foi possível carregar produtos e fórmulas do banco local.')
+      })
+      .finally(() => { if (active) setCatalogLoading(false) })
+    return () => { active = false }
+  }, [])
 
   const product = products.find((item) => item.id === productId)
   const quantity = Number(bags)
@@ -317,6 +336,7 @@ function Production() {
           <Calculator size={24} />
         </div>
 
+        {catalogLoading && <div className="empty-state"><strong>Carregando produtos...</strong></div>}
         <div className="form-grid">
           <label className="field">
             <span>Data da produção</span>
@@ -620,7 +640,7 @@ function Production() {
           className="add-period-button production-save-button"
           type="button"
           onClick={saveProduction}
-          disabled={saving || !quantityValid || !timeValid || !periodsValid}
+          disabled={saving || catalogLoading || !product || !quantityValid || !timeValid || !periodsValid}
         >
           {saving ? <RefreshCw size={18} /> : <Save size={18} />}
           {saving ? 'Salvando produção...' : 'Salvar produção no histórico'}
