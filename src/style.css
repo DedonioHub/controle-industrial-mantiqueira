@@ -1419,3 +1419,458 @@ h1 {
     align-items: flex-start;
   }
 }
+
+/* ==========================================
+   MANTIQUEIRA INDUSTRIAL - ESTOQUE
+   ========================================== */
+
+.stock-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1500px;
+}
+
+.stock-page .stock-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.stock-page .stock-panel,
+.stock-page .stock-info-panel {
+  padding: 24px;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #111b2a, #0d1522);
+  border: 1px solid #26384d;
+}
+
+.stock-refresh {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: #a9dcf4;
+  background: #142b40;
+  border: 1px solid #315a77;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stock-refresh:hover {
+  background: #1c405d;
+}
+
+.stock-refresh:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.stock-search {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  max-width: 420px;
+  min-height: 45px;
+  padding: 0 14px;
+  margin-bottom: 20px;
+  color: #7795ad;
+  background: #0a1422;
+  border: 1px solid #30435a;
+  border-radius: 10px;
+}
+
+.stock-search:focus-within {
+  border-color: #58a8d3;
+  box-shadow: 0 0 0 3px rgba(88, 168, 211, .12);
+}
+
+.stock-search input {
+  width: 100%;
+  min-width: 0;
+  color: #e6eef8;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-size: 12px;
+}
+
+.stock-search input::placeholder {
+  color: #62758b;
+}
+
+.stock-page .stock-table {
+  min-width: 1050px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.stock-page .stock-table th {
+  padding: 16px 14px;
+  color: #91a9bf;
+  background: #142338;
+  border-bottom: 1px solid #30445a;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.stock-page .stock-table td {
+  padding: 15px 14px;
+  color: #c3d1df;
+  background: #0d1827;
+  border-bottom: 1px solid #25364a;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.stock-page .stock-table tbody tr:hover td {
+  background: #142338;
+}
+
+.stock-page .stock-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.stock-page .stock-table td strong {
+  color: #dce9f5;
+  font-weight: 700;
+}
+
+.stock-page .table-input {
+  width: 100%;
+  min-width: 85px;
+  min-height: 37px;
+  padding: 0 10px;
+  color: #e6eef8;
+  background: #091421;
+  border: 1px solid #3a5874;
+  border-radius: 7px;
+  outline: none;
+  font: inherit;
+  font-size: 11px;
+  color-scheme: dark;
+}
+
+.stock-page .table-input:focus {
+  border-color: #65b6df;
+  box-shadow: 0 0 0 2px rgba(88, 168, 211, .12);
+}
+
+.stock-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 9px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.stock-page .stock-low {
+  color: #f0bd70;
+  background: rgba(234, 182, 77, .10);
+  border: 1px solid rgba(234, 182, 77, .22);
+}
+
+.stock-page .stock-ok {
+  color: #58d7ac;
+  background: rgba(54, 211, 153, .09);
+  border: 1px solid rgba(54, 211, 153, .2);
+}
+
+.stock-page .stock-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-page .stock-actions button,
+.stock-page .edit-button {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  transition: .2s ease;
+}
+
+.stock-page .stock-entry-button {
+  color: #58d7ac;
+  background: rgba(54, 211, 153, .09);
+  border: 1px solid rgba(54, 211, 153, .25);
+}
+
+.stock-page .stock-entry-button:hover {
+  color: #fff;
+  background: #168b69;
+}
+
+.stock-page .stock-exit-button {
+  color: #f0bd70;
+  background: rgba(234, 182, 77, .09);
+  border: 1px solid rgba(234, 182, 77, .25);
+}
+
+.stock-page .stock-exit-button:hover {
+  color: #fff;
+  background: #a96c20;
+}
+
+.stock-page .stock-actions button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.stock-page .edit-button {
+  color: #8dcdf0;
+  background: #142b40;
+  border: 1px solid #315a77;
+}
+
+.stock-page .edit-button:hover {
+  color: #fff;
+  background: #1c405d;
+}
+
+.stock-page .save-button {
+  color: #58d7ac;
+  background: rgba(54, 211, 153, .10);
+  border: 1px solid rgba(54, 211, 153, .25);
+}
+
+.stock-page .cancel-button {
+  color: #e49a9a;
+  background: rgba(220, 90, 90, .09);
+  border: 1px solid rgba(220, 90, 90, .23);
+}
+
+.stock-message {
+  padding: 14px 17px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.stock-error {
+  color: #ffaaaa;
+  background: rgba(190, 65, 65, .10);
+  border: 1px solid rgba(220, 90, 90, .3);
+}
+
+.stock-success {
+  color: #77e0b9;
+  background: rgba(54, 211, 153, .08);
+  border: 1px solid rgba(54, 211, 153, .25);
+}
+
+.stock-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .72);
+  backdrop-filter: blur(5px);
+}
+
+.stock-modal {
+  position: relative;
+  width: min(100%, 480px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  background: linear-gradient(145deg, #142338, #0d1725);
+  border: 1px solid #35516b;
+  border-radius: 16px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, .5);
+}
+
+.stock-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: #a8b7c8;
+  background: #1b2c40;
+  border: 1px solid #344b63;
+  border-radius: 8px;
+}
+
+.stock-modal h2 {
+  margin: 10px 35px 7px 0;
+  color: #e6eef8;
+  font-size: 22px;
+}
+
+.stock-modal-balance {
+  color: #8da4bb;
+  font-size: 11px;
+  margin: 0 0 20px;
+}
+
+.stock-modal-balance strong {
+  color: #8ed4f6;
+}
+
+.stock-movement-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+
+.stock-movement-tabs button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #9aabc0;
+  background: #0a1523;
+  border: 1px solid #30435a;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stock-movement-tabs button.active:first-child {
+  color: #69dfb5;
+  background: rgba(54, 211, 153, .11);
+  border-color: #278d70;
+}
+
+.stock-movement-tabs button.active:last-child {
+  color: #f0bd70;
+  background: rgba(234, 182, 77, .11);
+  border-color: #a96c20;
+}
+
+.stock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 17px;
+}
+
+.stock-field span {
+  color: #a8b8ca;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stock-field input {
+  width: 100%;
+  min-height: 45px;
+  padding: 0 13px;
+  color: #e6eef8;
+  background: #091421;
+  border: 1px solid #30435a;
+  border-radius: 9px;
+  outline: none;
+  font: inherit;
+  font-size: 12px;
+  color-scheme: dark;
+}
+
+.stock-field input:focus {
+  border-color: #58a8d3;
+  box-shadow: 0 0 0 3px rgba(88, 168, 211, .12);
+}
+
+.stock-field input::placeholder {
+  color: #62758b;
+}
+
+.stock-submit-button {
+  width: 100%;
+  min-height: 49px;
+  margin-top: 8px;
+  color: #071522;
+  background: linear-gradient(110deg, #62b9e2, #48d2b1);
+  border: 0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stock-submit-button:hover:not(:disabled) {
+  background: linear-gradient(110deg, #82d0f2, #6be3c5);
+}
+
+.stock-submit-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.stock-info-panel .section-heading {
+  margin-bottom: 15px;
+}
+
+.stock-info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid #29394c;
+  font-size: 11px;
+}
+
+.stock-info-row:last-child {
+  border-bottom: 0;
+}
+
+.stock-info-row span {
+  color: #8195aa;
+}
+
+.stock-info-row strong {
+  max-width: 65%;
+  color: #c5e6f7;
+  text-align: right;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .stock-page .stock-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .stock-page .stock-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-page .stock-panel,
+  .stock-page .stock-info-panel {
+    padding: 17px 13px;
+  }
+
+  .stock-modal {
+    padding: 22px 17px;
+  }
+
+  .stock-info-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stock-info-row strong {
+    max-width: 100%;
+    text-align: left;
+  }
+}
