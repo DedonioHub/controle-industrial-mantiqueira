@@ -1,24 +1,34 @@
 
 const { app } = require('electron')
-const Database = require('better-sqlite3')
+const initSqlJs = require('sql.js')
 const path = require('path')
 const fs = require('fs')
 
 let db
+let databasePath
 
-function initializeDatabase() {
+async function initializeDatabase() {
   const dataDirectory = path.join(app.getPath('userData'), 'database')
 
   if (!fs.existsSync(dataDirectory)) {
     fs.mkdirSync(dataDirectory, { recursive: true })
   }
 
-  const databasePath = path.join(dataDirectory, 'mantiqueira.db')
+  databasePath = path.join(dataDirectory, 'mantiqueira.db')
 
-  db = new Database(databasePath)
+  const SQL = await initSqlJs({
+    locateFile: (file) =>
+      path.join(__dirname, '../node_modules/sql.js/dist', file),
+  })
 
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
+  if (fs.existsSync(databasePath)) {
+    const fileBuffer = fs.readFileSync(databasePath)
+    db = new SQL.Database(new Uint8Array(fileBuffer))
+  } else {
+    db = new SQL.Database()
+  }
+
+  db.run('PRAGMA foreign_keys = ON')
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -76,7 +86,18 @@ function initializeDatabase() {
     );
   `)
 
+  saveDatabase()
+
   return databasePath
+}
+
+function saveDatabase() {
+  if (!db || !databasePath) {
+    throw new Error('Banco de dados não inicializado.')
+  }
+
+  const data = db.export()
+  fs.writeFileSync(databasePath, Buffer.from(data))
 }
 
 function getDatabase() {
@@ -90,4 +111,5 @@ function getDatabase() {
 module.exports = {
   initializeDatabase,
   getDatabase,
+  saveDatabase,
 }
