@@ -25,6 +25,25 @@ import Stock from './Stock'
 import Production from './Production'
 import { formatCurrency, formatNumber } from './utils/calculations'
 
+interface ProductionRecord {
+  id: number
+  product_id: string
+  product_name?: string
+  bags: number
+  total_kg: number
+  periods?: Array<{ duration_minutes: number; frequency_hz: number }>
+  start_time?: string | null
+  end_time?: string | null
+}
+
+interface StockMaterial {
+  id: string
+  name: string
+  costPerKg: number
+  stockKg: number
+  minimumStockKg: number
+}
+
 const menuItems = [
   { id: 'overview', label: 'Visão geral', icon: Gauge },
   { id: 'production', label: 'Produção', icon: Factory },
