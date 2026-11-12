@@ -1,26 +1,38 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Save, X, Trash2, Wheat, Package } from 'lucide-react'
-import {
-  products as initialProducts,
-  rawMaterials,
-  type Product,
-  type FormulaIngredient,
-} from './data/initialData'
 import { formatCurrency, formatNumber } from './utils/calculations'
 
 function Products() {
-  const [productList, setProductList] = useState<Product[]>(
-    () => initialProducts.map((product) => ({
-      ...product,
-      formula: product.formula.map((item) => ({ ...item })),
-    })),
-  )
+  const [productList, setProductList] = useState<DatabaseProduct[]>([])
+  const [rawMaterials, setRawMaterials] = useState<StockMaterial[]>([])
+  const [selectedId, setSelectedId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const [selectedId, setSelectedId] = useState(initialProducts[0]?.id ?? '')
+  async function loadData() {
+    setLoading(true)
+    setError('')
+    try {
+      const [products, materials] = await Promise.all([
+        window.mantiqueira.products.list(),
+        window.mantiqueira.stock.list(),
+      ])
+      setProductList(products)
+      setRawMaterials(materials)
+      setSelectedId((current) => products.some((item) => item.id === current) ? current : (products[0]?.id ?? ''))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar produtos e matérias-primas.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadData() }, [])
   const [editing, setEditing] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [draft, setDraft] = useState<Product | null>(null)
+  const [draft, setDraft] = useState<DatabaseProduct | null>(null)
 
   const selectedProduct = productList.find((item) => item.id === selectedId)
 
@@ -35,7 +47,7 @@ function Products() {
   }
 
   function startCreating() {
-    const newProduct: Product = {
+    const newProduct: DatabaseProduct = {
       id: `produto-${Date.now()}`,
       name: '',
       brand: '',
@@ -49,7 +61,7 @@ function Products() {
     setCreating(true)
   }
 
-  function updateIngredient(index: number, field: keyof FormulaIngredient, value: string) {
+  function updateIngredient(index: number, field: keyof ProductFormulaItem, value: string) {
     if (!draft) return
 
     const updatedFormula = [...draft.formula]
@@ -87,23 +99,24 @@ function Products() {
     })
   }
 
-  function saveProduct() {
+  async function saveProduct() {
     if (!draft || !draft.name.trim() || !draft.brand.trim()) return
     if (draft.bagWeightKg <= 0 || draft.salePrice < 0) return
     if (draft.formula.some((item) => item.quantityKg < 0)) return
-
-    if (creating) {
-      setProductList((current) => [...current, draft])
-    } else {
-      setProductList((current) =>
-        current.map((item) => item.id === draft.id ? draft : item),
-      )
+    try {
+      setSaving(true)
+      setError('')
+      await window.mantiqueira.products.save(draft)
+      await loadData()
+      setSelectedId(draft.id)
+      setEditing(false)
+      setCreating(false)
+      setDraft(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar produto.')
+    } finally {
+      setSaving(false)
     }
-
-    setSelectedId(draft.id)
-    setEditing(false)
-    setCreating(false)
-    setDraft(null)
   }
 
   function cancelEditing() {
@@ -112,7 +125,7 @@ function Products() {
     setDraft(null)
   }
 
-  function deleteProduct() {
+  async function deleteProduct() {
     if (!selectedProduct) return
 
     const confirmed = window.confirm(
@@ -121,9 +134,13 @@ function Products() {
 
     if (!confirmed) return
 
-    const remaining = productList.filter((item) => item.id !== selectedProduct.id)
-    setProductList(remaining)
-    setSelectedId(remaining[0]?.id ?? '')
+    try {
+      setError('')
+      await window.mantiqueira.products.delete(selectedProduct.id)
+      await loadData()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível excluir o produto.')
+    }
   }
 
   const activeProduct = editing ? draft : selectedProduct
@@ -141,6 +158,8 @@ function Products() {
 
   return (
     <div className="products-page">
+      {error && <div className="stock-message stock-error">{error}</div>}
+      {loading && <div className="empty-state"><strong>Carregando cadastro do banco local...</strong></div>}
       <section className="panel products-toolbar">
         <div>
           <span className="eyebrow">GESTÃO DE PRODUTOS</span>
@@ -276,8 +295,8 @@ function Products() {
                   ))}
 
                   <div className="edit-actions">
-                    <button className="save-button" onClick={saveProduct} type="button">
-                      <Save size={16} /> Salvar produto
+                    <button className="save-button" onClick={saveProduct} type="button" disabled={saving}>
+                      <Save size={16} /> {saving ? 'Salvando...' : 'Salvar produto'}
                     </button>
                     <button className="cancel-button" onClick={cancelEditing} type="button">
                       <X size={16} /> Cancelar
@@ -360,10 +379,7 @@ function Products() {
         </section>
       </div>
 
-      <div className="production-warning">
-        <strong>Cadastro em modo de desenvolvimento.</strong>
-        <p>As alterações e novos produtos ainda ficam somente na memória da tela. O salvamento definitivo e o histórico de versões das fórmulas serão conectados ao banco de dados posteriormente.</p>
-      </div>
+      <div className="production-warning"><strong>Cadastro integrado ao banco local.</strong><p>Alterações de produtos e fórmulas são gravadas no computador. Produtos com histórico de produção não podem ser excluídos para preservar os registros.</p></div>
     </div>
   )
 }
