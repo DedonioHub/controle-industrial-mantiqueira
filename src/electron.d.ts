@@ -50,6 +50,30 @@ interface ProductionRecord {
   }>
 }
 
+interface StockMaterial {
+  id: string
+  name: string
+  costPerKg: number
+  stockKg: number
+  minimumStockKg: number
+}
+
+interface StockMovementInput {
+  materialId: string
+  movementType: 'entrada' | 'saida'
+  quantityKg: number
+  unitCost?: number
+  movementDate: string
+  description?: string
+}
+
+interface StockMaterialUpdate {
+  id: string
+  name: string
+  costPerKg: number
+  minimumStockKg: number
+}
+
 interface Window {
   mantiqueira: {
     appName: string
@@ -71,6 +95,20 @@ interface Window {
       list: (filters?: {
         date?: string
       }) => Promise<ProductionRecord[]>
+    }
+
+    stock: {
+      list: () => Promise<StockMaterial[]>
+
+      move: (movement: StockMovementInput) => Promise<{
+        success: boolean
+        newStock: number
+        newCost: number
+      }>
+
+      updateMaterial: (material: StockMaterialUpdate) => Promise<{
+        success: boolean
+      }>
     }
   }
 }
