@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, ChartNoAxesCombined, Clock, Factory, Package, Search, TrendingUp } from 'lucide-react'
+import { CalendarDays, ChartNoAxesCombined, Clock, Factory, Package, Search, TrendingUp, RefreshCw, Gauge } from 'lucide-react'
 import { formatNumber } from './utils/calculations'
 
 interface ProductionRecord {
@@ -21,18 +21,25 @@ function Reports() {
   const [search, setSearch] = useState('')
   const [productFilter, setProductFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all')
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    let active = true
-    window.mantiqueira.production.list()
-      .then((data) => { if (active) setRecords(data as ProductionRecord[]) })
-      .catch((error) => {
-        console.error(error)
-        if (active) setLoadError('Não foi possível carregar o histórico do banco local.')
-      })
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [])
+  async function loadRecords(showRefresh = false) {
+    if (showRefresh) setRefreshing(true)
+    else setLoading(true)
+    setLoadError('')
+    try {
+      const data = await window.mantiqueira.production.list()
+      setRecords(data)
+    } catch (error) {
+      console.error(error)
+      setLoadError('Não foi possível carregar o histórico do banco local.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => { loadRecords() }, [])
 
   const filteredRecords = useMemo(() => records.filter((record) => {
     const name = (record.product_name || record.product_id).toLowerCase()
@@ -51,6 +58,11 @@ function Reports() {
   const totalHours = filteredRecords.reduce((sum, item) => sum + Number(item.total_minutes || 0), 0) / 60
   const totalStoppages = filteredRecords.reduce((sum, item) => sum + Number(item.stoppage_minutes || 0), 0) / 60
   const productivity = totalHours > 0 ? totalTons / totalHours : 0
+  const dailyTotals = Array.from(filteredRecords.reduce((map, record) => {
+    map.set(record.production_date, (map.get(record.production_date) || 0) + Number(record.total_kg || 0) / 1000)
+    return map
+  }, new Map<string, number>()).entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-7)
+  const maxDailyTons = Math.max(1, ...dailyTotals.map(([, tons]) => tons))
   const productOptions = Array.from(new Map(records.map((record) => [
     record.product_id,
     { id: record.product_id, name: record.product_name || record.product_id },
@@ -58,6 +70,10 @@ function Reports() {
 
   return (
     <div className="reports-page">
+      <section className="reports-hero">
+        <div><span className="eyebrow">INTELIGÊNCIA OPERACIONAL</span><h2>Relatórios de produção</h2><p>Analise volume produzido, produtividade, paradas e desempenho por produto com base nos apontamentos salvos.</p></div>
+        <button className="stock-refresh" onClick={() => loadRecords(true)} disabled={refreshing}><RefreshCw size={16}/>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+      </section>
       <section className="reports-kpis">
         <article className="kpi-card"><div className="kpi-top"><span>Total produzido</span><Package size={18} /></div><strong>{formatNumber(totalBags, 0)} <small>sacos</small></strong><p>Registros do período selecionado</p></article>
         <article className="kpi-card"><div className="kpi-top"><span>Produção total</span><Factory size={18} /></div><strong>{formatNumber(totalTons)} <small>ton</small></strong><p>Massa real registrada</p></article>
@@ -65,8 +81,12 @@ function Reports() {
         <article className="kpi-card"><div className="kpi-top"><span>Produtividade média</span><TrendingUp size={18} /></div><strong>{formatNumber(productivity)} <small>ton/h</small></strong><p>Produção dividida pelas horas registradas</p></article>
       </section>
 
+      <section className="panel reports-trend">
+        <div className="section-heading"><div><span className="eyebrow">EVOLUÇÃO RECENTE</span><h2>Produção por dia</h2><p className="section-description">Toneladas registradas nos últimos sete dias com apontamento.</p></div><Gauge size={22}/></div>
+        {dailyTotals.length > 0 ? <div className="reports-bars">{dailyTotals.map(([date, tons]) => <div className="reports-bar-column" key={date}><strong>{formatNumber(tons)}</strong><div className="reports-bar-track"><i style={{height: `${Math.max(4, tons / maxDailyTons * 100)}%`}}/></div><span>{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})}</span></div>)}</div> : <div className="empty-state"><Package size={24}/><strong>Sem dados para montar o gráfico.</strong></div>}
+      </section>
       <section className="panel reports-panel">
-        <div className="section-heading"><div><span className="eyebrow">DESEMPENHO INDUSTRIAL</span><h2>Histórico de produção</h2></div><ChartNoAxesCombined size={22} /></div>
+        <div className="section-heading"><div><span className="eyebrow">DESEMPENHO INDUSTRIAL</span><h2>Histórico detalhado</h2></div><ChartNoAxesCombined size={22} /></div>
         <div className="reports-filters">
           <label className="stock-search"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar produto..." /></label>
           <label className="field"><span>Produto</span><select value={productFilter} onChange={(event) => setProductFilter(event.target.value)}><option value="all">Todos os produtos</option>{productOptions.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label>
