@@ -1278,3 +1278,144 @@ h1 {
     font-size: 16px;
   }
 }
+
+/* VISÃO GERAL */
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.overview-date {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 190px;
+}
+
+.overview-date span {
+  color: #8da4bb;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.overview-date input {
+  min-height: 42px;
+  padding: 0 12px;
+  color: #e6eef8;
+  background: #0a1422;
+  border: 1px solid #30435a;
+  border-radius: 9px;
+  color-scheme: dark;
+}
+
+.overview-flow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.overview-flow .flow-column {
+  gap: 12px;
+}
+
+.overview-flow .machine-card {
+  min-height: 160px;
+  cursor: pointer;
+}
+
+.overview-record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overview-record {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #293d53;
+  border-radius: 10px;
+  background: #0a1523;
+}
+
+.overview-record div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.overview-record div:last-child {
+  text-align: right;
+}
+
+.overview-record strong {
+  color: #dce9f5;
+  font-size: 11px;
+}
+
+.overview-record span {
+  color: #8398ae;
+  font-size: 10px;
+}
+
+.overview-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #29394c;
+}
+
+.overview-metric span {
+  color: #8398ae;
+  font-size: 11px;
+}
+
+.overview-metric strong {
+  color: #c5e6f7;
+  font-size: 13px;
+}
+
+.overview-action {
+  margin-top: 18px;
+  width: 100%;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #a9dcf4;
+  background: #142b40;
+  border: 1px solid #315a77;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.overview-action:hover {
+  background: #1c405d;
+}
+
+@media (max-width: 900px) {
+  .overview-flow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .overview-date {
+    width: 100%;
+  }
+
+  .page-heading {
+    flex-direction: column;
+  }
+
+  .overview-record {
+    align-items: flex-start;
+  }
+}
