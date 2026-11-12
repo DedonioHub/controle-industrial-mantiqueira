@@ -305,11 +305,7 @@ function App() {
                 <div className="factory-flow overview-flow">
                   <div className="flow-column">
                     <span className="flow-caption">MATÉRIA-PRIMA</span>
-
-                    <button
-                      className="machine-card"
-                      onClick={() => setActivePage('stock')}
-                    >
+                    <button className="machine-card" onClick={() => setActivePage('stock')}>
                       <Boxes size={27} />
                       <strong>Silos de matéria-prima</strong>
                       <small>{stockError || `${materials.length} insumos cadastrados`}</small>
@@ -317,62 +313,35 @@ function App() {
                       <span className="machine-detail">{lowStockMaterials.length} itens no mínimo • {formatCurrency(totalStockValue)}</span>
                     </button>
                   </div>
-
-                  <div className="flow-column flow-middle">
-                    <span className="flow-caption">PROCESSAMENTO</span>
-
-                    <button
-                      className="machine-card highlight-machine"
-                      onClick={() => setActivePage('production')}
-                    >
+                  <div className="flow-column">
+                    <span className="flow-caption">PREPARAÇÃO</span>
+                    <button className="machine-card highlight-machine" onClick={() => setActivePage('production')}>
                       <Settings size={27} />
                       <strong>Moinho</strong>
-                      <small>Taxa de moagem informada no apontamento</small>
-                      <em className="status-ok">
-                        {millingRate > 0
-                          ? `${millingRate.toLocaleString('pt-BR', {
-                              maximumFractionDigits: 2,
-                            })} ton/h`
-                          : 'Sem apontamento'}
-                      </em>
-                    </button>
-
-                    <div className="flow-arrow">↓</div>
-
-                    <button
-                      className="machine-card highlight-machine"
-                      onClick={() => setActivePage('production')}
-                    >
-                      <Factory size={27} />
-                      <strong>Extrusora E130</strong>
-                      <small>Motor 125 cv • períodos de operação registrados</small>
-                      <em className="status-ok">
-                        {allPeriods.length > 0
-                          ? `${weightedFrequency.toLocaleString('pt-BR', {
-                              maximumFractionDigits: 1,
-                            })} Hz média`
-                          : 'Sem apontamento'}
-                      </em>
+                      <small>Taxa informada no apontamento</small>
+                      <em className="status-ok">{millingRate > 0 ? `${millingRate.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ton/h` : 'Sem apontamento'}</em>
                     </button>
                   </div>
-
+                  <div className="flow-column">
+                    <span className="flow-caption">EXTRUSÃO</span>
+                    <button className="machine-card highlight-machine" onClick={() => setActivePage('production')}>
+                      <Factory size={27} />
+                      <strong>Extrusora E130</strong>
+                      <small>Motor 125 cv • períodos registrados</small>
+                      <em className="status-ok">{allPeriods.length > 0 ? `${weightedFrequency.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} Hz média` : 'Sem apontamento'}</em>
+                    </button>
+                  </div>
                   <div className="flow-column">
                     <span className="flow-caption">RESULTADO</span>
-
-                    <button
-                      className="machine-card"
-                      onClick={() => setActivePage('production')}
-                    >
+                    <button className="machine-card" onClick={() => setActivePage('production')}>
                       <Package size={27} />
-                      <strong>Produção final</strong>
-                      <small>Sacos registrados no dia</small>
-                      <em className="status-ok">
-                        {totalBags.toLocaleString('pt-BR')} sacos
-                      </em>
+                      <strong>Produto final</strong>
+                      <small>Produção registrada no dia</small>
+                      <em className="status-ok">{totalBags.toLocaleString('pt-BR')} sacos</em>
+                      <span className="machine-detail">{formatNumber(totalTons)} toneladas</span>
                     </button>
                   </div>
                 </div>
-
                 <p className="map-note">
                   Dados vinculados ao banco local. A moagem necessária e a produtividade são calculadas a partir dos apontamentos; o saldo dos silos vem das entradas e saídas registradas no Estoque.
                 </p>
