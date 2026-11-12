@@ -7,12 +7,20 @@ const fs = require('fs')
 let db
 let databasePath
 
+function addColumnIfMissing(table, column, definition) {
+  const columns = db.exec(`PRAGMA table_info(${table})`)
+  const exists = columns.length > 0 &&
+    columns[0].values.some((row) => row[1] === column)
+
+  if (!exists) {
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+  }
+}
+
 async function initializeDatabase() {
   const dataDirectory = path.join(app.getPath('userData'), 'database')
 
-  if (!fs.existsSync(dataDirectory)) {
-    fs.mkdirSync(dataDirectory, { recursive: true })
-  }
+  fs.mkdirSync(dataDirectory, { recursive: true })
 
   databasePath = path.join(dataDirectory, 'mantiqueira.db')
 
@@ -67,11 +75,27 @@ async function initializeDatabase() {
       product_id TEXT NOT NULL,
       bags INTEGER NOT NULL,
       total_kg REAL NOT NULL,
-      ingredient_cost REAL NOT NULL,
-      estimated_revenue REAL NOT NULL,
+      ingredient_cost REAL NOT NULL DEFAULT 0,
+      estimated_revenue REAL NOT NULL DEFAULT 0,
       production_date TEXT NOT NULL,
       notes TEXT,
       FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      production_id INTEGER NOT NULL,
+      period_number INTEGER NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      duration_minutes INTEGER NOT NULL,
+      frequency_hz REAL NOT NULL,
+      bags INTEGER NOT NULL DEFAULT 0,
+      total_kg REAL NOT NULL DEFAULT 0,
+      tons_per_hour REAL NOT NULL DEFAULT 0,
+      is_estimated INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (production_id)
+        REFERENCES production_records(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS stock_movements (
@@ -84,6 +108,24 @@ async function initializeDatabase() {
       description TEXT,
       FOREIGN KEY (material_id) REFERENCES raw_materials(id)
     );
+  `)
+
+  // Atualiza registros antigos sem apagar dados.
+  addColumnIfMissing('production_records', 'start_time', 'TEXT')
+  addColumnIfMissing('production_records', 'end_time', 'TEXT')
+  addColumnIfMissing('production_records', 'total_minutes', 'INTEGER DEFAULT 0')
+  addColumnIfMissing('production_records', 'stoppage_minutes', 'INTEGER DEFAULT 0')
+  addColumnIfMissing('production_records', 'milling_tons_per_hour', 'REAL DEFAULT 0')
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_production_date
+    ON production_records(production_date);
+
+    CREATE INDEX IF NOT EXISTS idx_period_production
+    ON production_periods(production_id);
+
+    CREATE INDEX IF NOT EXISTS idx_stock_movement_date
+    ON stock_movements(movement_date);
   `)
 
   saveDatabase()
