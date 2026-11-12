@@ -7,7 +7,6 @@ import {
   Wheat,
   Plus,
   Trash2,
-  Clock,
   Gauge,
 } from 'lucide-react'
 import { products } from './data/initialData'
