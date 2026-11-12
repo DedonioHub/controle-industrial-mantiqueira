@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CalendarDays,
   ChartNoAxesCombined,
@@ -9,34 +9,48 @@ import {
   Search,
   TrendingUp,
 } from 'lucide-react'
-import { products } from './data/initialData'
 import { formatNumber } from './utils/calculations'
 
 interface ProductionRecord {
   id: number
-  date: string
-  productId: string
+  production_date: string
+  product_id: string
+  product_name?: string
   bags: number
-  hours: number
-  frequency: number
-  stoppageHours: number
+  total_kg: number
+  total_minutes: number
+  stoppage_minutes: number
+  periods?: Array<{ duration_minutes: number; frequency_hz: number }>
 }
 
 function Reports() {
-  const [records] = useState<ProductionRecord[]>([])
+  const [records, setRecords] = useState<ProductionRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    window.mantiqueira.production.list()
+      .then((data) => { if (active) setRecords(data as ProductionRecord[]) })
+      .catch((error) => {
+        console.error(error)
+        if (active) setLoadError('Não foi possível carregar o histórico do banco local.')
+      })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
   const [search, setSearch] = useState('')
   const [productFilter, setProductFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all')
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
-      const product = products.find((item) => item.id === record.productId)
-      const matchesSearch = product?.name.toLowerCase().includes(search.toLowerCase())
+      const matchesSearch = (record.product_name || record.product_id).toLowerCase().includes(search.toLowerCase())
 
       const matchesProduct =
-        productFilter === 'all' || record.productId === productFilter
+        productFilter === 'all' || record.product_id === productFilter
 
-      const recordDate = new Date(`${record.date}T12:00:00`)
+      const recordDate = new Date(`${record.production_date}T12:00:00`)
       const now = new Date()
       const daysAgo = Math.floor(
         (now.getTime() - recordDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -57,7 +71,7 @@ function Reports() {
     (sum, item) => sum + item.stoppageHours,
     0,
   )
-  const totalTons = totalBags * 15 / 1000
+  const totalTons = filteredRecords.reduce((sum, item) => sum + Number(item.total_kg || 0), 0) / 1000
   const productivity = totalHours > 0 ? totalTons / totalHours : 0
 
   return (
@@ -114,7 +128,7 @@ function Reports() {
               onChange={(event) => setProductFilter(event.target.value)}
             >
               <option value="all">Todos os produtos</option>
-              {products.map((product) => (
+              {Array.from(new Map(records.map((record) => [record.product_id, { id: record.product_id, name: record.product_name || record.product_id }])).values()).map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name}
                 </option>
@@ -155,18 +169,18 @@ function Reports() {
                   (item) => item.id === record.productId,
                 )
                 const tons = record.bags * (product?.bagWeightKg ?? 15) / 1000
-                const rate = record.hours > 0 ? tons / record.hours : 0
+                const rate = (record.total_minutes || 0) / 60 > 0 ? tons / record.hours : 0
 
                 return (
                   <tr key={record.id}>
                     <td>{new Date(`${record.date}T12:00:00`).toLocaleDateString('pt-BR')}</td>
-                    <td>{product?.name ?? 'Produto não encontrado'}</td>
+                    <td>{record.product_name ?? record.product_id}</td>
                     <td>{formatNumber(record.bags, 0)}</td>
                     <td>{formatNumber(tons)}</td>
-                    <td>{formatNumber(record.hours)}</td>
-                    <td>{formatNumber(record.frequency)} Hz</td>
+                    <td>{formatNumber(hours)}</td>
+                    <td>{formatNumber(frequency)} Hz</td>
                     <td>{formatNumber(rate)} ton/h</td>
-                    <td>{formatNumber(record.stoppageHours)} h</td>
+                    <td>{formatNumber((record.stoppage_minutes || 0) / 60)} h</td>
                   </tr>
                 )
               })}
@@ -174,11 +188,13 @@ function Reports() {
           </table>
         </div>
 
-        {filteredRecords.length === 0 && (
+        {loading && <div className="empty-state"><strong>Carregando histórico...</strong></div>}
+        {loadError && <div className="stock-message stock-error">{loadError}</div>}
+        {!loading && filteredRecords.length === 0 && (
           <div className="empty-state">
             <CalendarDays size={28} />
             <strong>Nenhum registro encontrado.</strong>
-            <span>Os apontamentos aparecerão aqui quando o histórico de produção estiver conectado.</span>
+            <span>Não há registros para os filtros selecionados.</span>
           </div>
         )}
 
@@ -197,10 +213,7 @@ function Reports() {
         <strong>{formatNumber(totalStoppages)} <small>horas</small></strong>
       </section>
 
-      <div className="production-warning">
-        <strong>Histórico ainda não conectado.</strong>
-        <p>Esta tela está preparada para receber os registros reais. Os dados da produção serão salvos permanentemente quando conectarmos o banco de dados. Nenhuma produção fictícia foi inserida.</p>
-      </div>
+
     </div>
   )
 }
