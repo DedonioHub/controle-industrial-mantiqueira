@@ -75,6 +75,7 @@ function App() {
   const [records, setRecords] = useState<ProductionRecord[]>([])
   const [materials, setMaterials] = useState<StockMaterial[]>([])
   const [stockError, setStockError] = useState('')
+  const [stockLoading, setStockLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
 
@@ -122,13 +123,30 @@ function App() {
     return () => {
       active = false
     }
-  }, [selectedDate])
+  }, [selectedDate, activePage])
 
   useEffect(() => {
     let active = true
+    setStockLoading(true)
+    setStockError('')
     window.mantiqueira.stock.list()
-      .then((items) => { if (active) setMaterials(items) })
-      .catch(() => { if (active) setStockError('Não foi possível consultar os saldos.') })
+      .then((items) => {
+        if (!active) return
+        setMaterials(items.map((item) => ({
+          ...item,
+          stockKg: Number(item.stockKg),
+          costPerKg: Number(item.costPerKg),
+          minimumStockKg: Number(item.minimumStockKg),
+        })))
+      })
+      .catch((error) => {
+        console.error('Falha ao carregar estoque na Visão Geral:', error)
+        if (active) {
+          setMaterials([])
+          setStockError('Falha ao consultar o estoque')
+        }
+      })
+      .finally(() => { if (active) setStockLoading(false) })
     return () => { active = false }
   }, [activePage])
 
@@ -307,9 +325,9 @@ function App() {
                     <button className="machine-card" onClick={() => setActivePage('stock')}>
                       <Boxes size={27} />
                       <strong>Silos de matéria-prima</strong>
-                      <small>{stockError || `${materials.length} insumos cadastrados`}</small>
-                      <em className="status-ok">{formatNumber(totalRawStock)} kg em estoque</em>
-                      <span className="machine-detail">{lowStockMaterials.length} itens no mínimo • {formatCurrency(totalStockValue)}</span>
+                      <small>{stockLoading ? 'Atualizando saldos...' : stockError || `${materials.length} insumos cadastrados`}</small>
+                      <em className={stockError ? 'status-warning' : 'status-ok'}>{stockLoading ? 'Consultando banco...' : stockError ? 'Saldo indisponível' : `${formatNumber(totalRawStock)} kg em estoque`}</em>
+                      <span className="machine-detail">{stockLoading || stockError ? 'Abra o Estoque para conferir' : `${lowStockMaterials.length} itens no mínimo • ${formatCurrency(totalStockValue)}`}</span>
                     </button>
                   </div>
                   <div className="flow-column">
@@ -342,7 +360,7 @@ function App() {
                   </div>
                 </div>
                 <p className="map-note">
-                  Dados vinculados ao banco local. A moagem necessária e a produtividade são calculadas a partir dos apontamentos; o saldo dos silos vem das entradas e saídas registradas no Estoque.
+                  Os indicadores são atualizados ao retornar a esta tela. Produção, frequência e estoque são consultados diretamente no banco local. Clique em cada etapa para abrir o módulo correspondente.
                 </p>
               </section>
 
