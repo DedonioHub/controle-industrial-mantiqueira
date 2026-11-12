@@ -39,6 +39,7 @@ interface ProductionRecord {
   start_time: string | null
   end_time: string | null
   total_minutes: number
+  stoppage_minutes: number
   periods: Array<{
     period_number: number
     start_time: string
