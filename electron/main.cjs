@@ -123,8 +123,11 @@ function registerDatabaseHandlers() {
     if (!Number.isFinite(bagWeight) || bagWeight <= 0 || !Number.isFinite(salePrice) || salePrice < 0) {
       throw new Error('Peso e preço de venda inválidos.')
     }
-    if (formula.some((item) => !item.materialId || !Number.isFinite(Number(item.quantityKg)) || Number(item.quantityKg) < 0)) {
-      throw new Error('Confira os ingredientes e as quantidades da fórmula.')
+    if (formula.length === 0 ||
+        formula.some((item) => !item.materialId || !Number.isFinite(Number(item.quantityKg)) || Number(item.quantityKg) < 0) ||
+        formula.reduce((sum, item) => sum + Number(item.quantityKg || 0), 0) <= 0 ||
+        new Set(formula.map((item) => item.materialId)).size !== formula.length) {
+      throw new Error('A fórmula precisa ter ingredientes válidos, sem duplicidade, e peso maior que zero.')
     }
     const db = getDatabase()
     db.run('BEGIN TRANSACTION')
