@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import {
   Activity,
+  AlertTriangle,
   Bell,
   Boxes,
   ChartNoAxesCombined,
@@ -22,6 +23,7 @@ import Finance from './Finance'
 import Products from './Products'
 import Stock from './Stock'
 import Production from './Production'
+import { formatCurrency, formatNumber } from './utils/calculations'
 
 const menuItems = [
   { id: 'overview', label: 'Visão geral', icon: Gauge },
@@ -53,6 +55,8 @@ function App() {
   const [databaseStatus, setDatabaseStatus] = useState('Verificando...')
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [records, setRecords] = useState<ProductionRecord[]>([])
+  const [materials, setMaterials] = useState<StockMaterial[]>([])
+  const [stockError, setStockError] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
 
@@ -102,6 +106,14 @@ function App() {
     }
   }, [selectedDate])
 
+  useEffect(() => {
+    let active = true
+    window.mantiqueira.stock.list()
+      .then((items) => { if (active) setMaterials(items) })
+      .catch(() => { if (active) setStockError('Não foi possível consultar os saldos.') })
+    return () => { active = false }
+  }, [activePage])
+
   const totalBags = records.reduce(
     (sum, record) => sum + Number(record.bags || 0),
     0,
@@ -113,6 +125,9 @@ function App() {
   )
 
   const totalTons = totalKg / 1000
+  const totalRawStock = materials.reduce((sum, item) => sum + Number(item.stockKg || 0), 0)
+  const lowStockMaterials = materials.filter((item) => item.stockKg <= item.minimumStockKg)
+  const totalStockValue = materials.reduce((sum, item) => sum + item.stockKg * item.costPerKg, 0)
 
   const allPeriods = records.flatMap((record) => record.periods || [])
 
@@ -278,8 +293,9 @@ function App() {
                     >
                       <Boxes size={27} />
                       <strong>Silos de matéria-prima</strong>
-                      <small>Milho, sorgo, soja e demais insumos</small>
-                      <em className="status-ok">Consultar estoque</em>
+                      <small>{stockError || `${materials.length} insumos cadastrados`}</small>
+                      <em className="status-ok">{formatNumber(totalRawStock)} kg em estoque</em>
+                      <span className="machine-detail">{lowStockMaterials.length} itens no mínimo • {formatCurrency(totalStockValue)}</span>
                     </button>
                   </div>
 
@@ -292,7 +308,7 @@ function App() {
                     >
                       <Settings size={27} />
                       <strong>Moinho</strong>
-                      <small>Capacidade necessária registrada</small>
+                      <small>Taxa de moagem informada no apontamento</small>
                       <em className="status-ok">
                         {millingRate > 0
                           ? `${millingRate.toLocaleString('pt-BR', {
@@ -310,7 +326,7 @@ function App() {
                     >
                       <Factory size={27} />
                       <strong>Extrusora E130</strong>
-                      <small>Motor 125 cv</small>
+                      <small>Motor 125 cv • períodos de operação registrados</small>
                       <em className="status-ok">
                         {allPeriods.length > 0
                           ? `${weightedFrequency.toLocaleString('pt-BR', {
@@ -339,10 +355,7 @@ function App() {
                 </div>
 
                 <p className="map-note">
-                  A visão geral apresenta os registros do dia selecionado.
-                  Clique nos equipamentos para acessar o módulo correspondente.
-                  O estoque dos silos será conectado ao cadastro e às
-                  movimentações do módulo Estoque.
+                  Dados vinculados ao banco local. A moagem necessária e a produtividade são calculadas a partir dos apontamentos; o saldo dos silos vem das entradas e saídas registradas no Estoque.
                 </p>
               </section>
 
