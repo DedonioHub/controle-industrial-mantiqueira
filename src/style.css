@@ -813,3 +813,468 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================
+   MANTIQUEIRA INDUSTRIAL - PRODUÇÃO
+   ========================================== */
+
+.production-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 1500px;
+}
+
+.production-page .production-form {
+  padding: 28px;
+  margin-bottom: 0;
+  border: 1px solid #26384d;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #121e2e, #0d1725);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .13);
+}
+
+.production-page .section-heading {
+  margin-bottom: 25px;
+}
+
+.production-page .section-heading > svg {
+  color: #70b8dd;
+  flex-shrink: 0;
+}
+
+.production-page .section-description {
+  color: #8294aa;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 9px 0 0;
+}
+
+.production-page .form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.production-page .field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.production-page .field > span {
+  color: #a8b8ca;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.production-page .field input,
+.production-page .field select,
+.production-page .field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  color: #e6eef8;
+  background: #0a1422;
+  border: 1px solid #30435a;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  color-scheme: dark;
+}
+
+.production-page .field textarea {
+  min-height: 95px;
+  padding: 13px 14px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.production-page .field input:hover,
+.production-page .field select:hover,
+.production-page .field textarea:hover {
+  border-color: #456785;
+  background: #0d1929;
+}
+
+.production-page .field input:focus,
+.production-page .field select:focus,
+.production-page .field textarea:focus {
+  border-color: #58a8d3;
+  box-shadow: 0 0 0 3px rgba(88, 168, 211, .13);
+  background: #0d1929;
+}
+
+.production-page .field input::placeholder,
+.production-page .field textarea::placeholder {
+  color: #62758b;
+}
+
+.production-page .field select option {
+  color: #e6eef8;
+  background: #101d2d;
+}
+
+.production-page .production-notes {
+  margin-top: 8px;
+}
+
+.production-page .product-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 17px;
+  margin: 5px 0 22px;
+  background: rgba(76, 137, 177, .08);
+  border: 1px solid #29445c;
+  border-radius: 11px;
+}
+
+.production-page .product-info span {
+  flex: 1 1 150px;
+  color: #8297ad;
+  font-size: 11px;
+}
+
+.production-page .product-info strong {
+  color: #bce4f6;
+  margin-left: 4px;
+}
+
+.production-page .period-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.production-page .period-row {
+  display: grid;
+  grid-template-columns: 95px repeat(3, minmax(110px, 1fr)) repeat(3, minmax(105px, .8fr)) 35px;
+  align-items: end;
+  gap: 14px;
+  padding: 20px;
+  background: #0b1625;
+  border: 1px solid #293e54;
+  border-radius: 13px;
+  transition: border-color .2s ease;
+}
+
+.production-page .period-row:hover {
+  border-color: #456985;
+}
+
+.production-page .period-title {
+  align-self: center;
+  color: #72c6ed;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.production-page .period-metric {
+  min-width: 0;
+  min-height: 66px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: #142439;
+  border: 1px solid #263f59;
+  border-radius: 9px;
+}
+
+.production-page .period-metric span {
+  color: #8296ad;
+  font-size: 10px;
+}
+
+.production-page .period-metric strong {
+  color: #d5eafa;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.production-page .period-delete {
+  width: 35px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #d88787;
+  background: rgba(190, 75, 75, .09);
+  border: 1px solid rgba(190, 75, 75, .25);
+  border-radius: 9px;
+  transition: .2s ease;
+}
+
+.production-page .period-delete:hover {
+  color: #fff;
+  background: #a83e48;
+  border-color: #c85b65;
+}
+
+.production-page .add-period-button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 19px;
+  color: #a9dcf4;
+  background: #142b40;
+  border: 1px solid #315a77;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: .2s ease;
+}
+
+.production-page .add-period-button:hover:not(:disabled) {
+  color: #fff;
+  background: #1c405d;
+  border-color: #65b6df;
+  transform: translateY(-1px);
+}
+
+.production-page .add-period-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.production-page .period-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 22px;
+}
+
+.production-page .period-summary > div {
+  min-width: 0;
+  padding: 17px;
+  background: #0a1523;
+  border: 1px solid #293d53;
+  border-radius: 11px;
+}
+
+.production-page .period-summary span {
+  display: block;
+  color: #8295aa;
+  font-size: 10px;
+  margin-bottom: 9px;
+}
+
+.production-page .period-summary strong {
+  color: #c5e6f7;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.production-page .period-validation {
+  margin-top: 19px;
+  padding: 16px 18px;
+  color: #a9bed1;
+  background: rgba(67, 133, 177, .08);
+  border: 1px solid #294861;
+  border-radius: 11px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.production-page .period-validation strong {
+  display: block;
+  color: #bce4f6;
+  margin-bottom: 5px;
+}
+
+.production-page .period-validation p {
+  margin: 0;
+}
+
+.production-page .production-error {
+  color: #ff9999;
+  margin-top: 8px !important;
+}
+
+.production-page .map-note {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 17px;
+}
+
+.production-page .production-results {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.production-page .production-results .kpi-card {
+  min-width: 0;
+  padding: 22px;
+  border-radius: 14px;
+  min-height: 145px;
+}
+
+.production-page .production-results .kpi-card > strong {
+  font-size: clamp(19px, 2vw, 27px);
+  overflow-wrap: anywhere;
+}
+
+.production-page .production-save-button {
+  width: 100%;
+  min-height: 55px;
+  color: #071522;
+  background: linear-gradient(110deg, #62b9e2, #48d2b1);
+  border: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .3px;
+}
+
+.production-page .production-save-button:hover:not(:disabled) {
+  color: #071522;
+  background: linear-gradient(110deg, #82d0f2, #6be3c5);
+}
+
+.production-page .production-save-button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.production-page .history-action {
+  justify-content: flex-end;
+}
+
+.production-page .history-action .add-period-button {
+  width: 100%;
+}
+
+.production-page .table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #293e54;
+  border-radius: 11px;
+}
+
+.production-page .consumption-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.production-page .consumption-table th {
+  padding: 15px;
+  color: #8fa7bd;
+  background: #142338;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: .5px;
+  font-weight: 800;
+}
+
+.production-page .consumption-table td {
+  padding: 15px;
+  color: #c3d1df;
+  border-top: 1px solid #26384c;
+}
+
+.production-page .consumption-table tbody tr:hover {
+  background: rgba(70, 130, 170, .07);
+}
+
+.production-page .empty-state {
+  margin-top: 15px;
+  padding: 25px;
+  background: #0a1523;
+  border: 1px dashed #30465d;
+  border-radius: 12px;
+}
+
+.production-page .production-form + .production-results {
+  margin-top: 0;
+}
+
+@media (max-width: 1250px) {
+  .production-page .period-row {
+    grid-template-columns: 90px repeat(3, minmax(100px, 1fr));
+  }
+
+  .production-page .period-metric {
+    min-height: 58px;
+  }
+
+  .production-page .period-delete {
+    grid-column: 4;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 900px) {
+  .production-page .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .production-page .period-summary,
+  .production-page .production-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .production-page .period-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .production-page .period-title {
+    grid-column: 1 / -1;
+  }
+
+  .production-page .period-delete {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 600px) {
+  .production-page {
+    gap: 15px;
+  }
+
+  .production-page .production-form {
+    padding: 19px 15px;
+  }
+
+  .production-page .form-grid,
+  .production-page .period-summary,
+  .production-page .production-results {
+    grid-template-columns: 1fr;
+  }
+
+  .production-page .period-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 15px;
+  }
+
+  .production-page .period-title {
+    grid-column: 1 / -1;
+  }
+
+  .production-page .period-delete {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .production-page .product-info {
+    flex-direction: column;
+  }
+
+  .production-page .section-heading h2 {
+    font-size: 16px;
+  }
+}
