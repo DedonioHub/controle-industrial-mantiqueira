@@ -8,4 +8,9 @@ contextBridge.exposeInMainWorld('mantiqueira', {
   database: {
     getStatus: () => ipcRenderer.invoke('database:get-status'),
   },
+
+  production: {
+    save: (record) => ipcRenderer.invoke('production:save', record),
+    list: (filters) => ipcRenderer.invoke('production:list', filters),
+  },
 })
