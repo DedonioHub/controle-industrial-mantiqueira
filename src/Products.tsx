@@ -101,9 +101,24 @@ function Products() {
   }
 
   async function saveProduct() {
-    if (!draft || !draft.name.trim() || !draft.brand.trim()) return
-    if (draft.bagWeightKg <= 0 || draft.salePrice < 0) return
-    if (draft.formula.some((item) => item.quantityKg < 0)) return
+    if (!draft) return
+    if (!draft.name.trim() || !draft.brand.trim()) {
+      setError('Informe o nome e a marca do produto.')
+      return
+    }
+    if (draft.bagWeightKg <= 0 || draft.salePrice < 0) {
+      setError('Confira o peso da embalagem e o preço de venda.')
+      return
+    }
+    if (draft.formula.length === 0 || draft.formula.reduce((sum, item) => sum + Number(item.quantityKg || 0), 0) <= 0) {
+      setError('Adicione os ingredientes e informe as quantidades da fórmula.')
+      return
+    }
+    if (draft.formula.some((item) => item.quantityKg < 0) ||
+        new Set(draft.formula.map((item) => item.materialId)).size !== draft.formula.length) {
+      setError('Confira as quantidades e evite ingredientes duplicados.')
+      return
+    }
     try {
       setSaving(true)
       setError('')
