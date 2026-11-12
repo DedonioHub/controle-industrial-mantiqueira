@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('mantiqueira', {
     list: (filters) => ipcRenderer.invoke('production:list', filters),
   },
 
+  products: {
+    list: () => ipcRenderer.invoke('products:list'),
+    save: (product) => ipcRenderer.invoke('products:save', product),
+    delete: (productId) => ipcRenderer.invoke('products:delete', productId),
+  },
+
   stock: {
     list: () => ipcRenderer.invoke('stock:list'),
     move: (movement) => ipcRenderer.invoke('stock:move', movement),
