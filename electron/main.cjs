@@ -13,6 +13,74 @@ function registerDatabaseHandlers() {
     path: path.join(app.getPath('userData'), 'database', 'mantiqueira.db'),
   }))
 
+
+  ipcMain.handle('stock:list', () => {
+    const db = getDatabase()
+    const result = db.exec(`SELECT id, name, cost_per_kg, stock_kg, minimum_stock_kg
+      FROM raw_materials ORDER BY name`)
+    return (result[0]?.values || []).map((row) => ({
+      id: row[0], name: row[1], costPerKg: Number(row[2] || 0),
+      stockKg: Number(row[3] || 0), minimumStockKg: Number(row[4] || 0),
+    }))
+  })
+
+  ipcMain.handle('stock:update-material', (_event, material) => {
+    if (!material?.id || !String(material.name || '').trim()) {
+      throw new Error('Informe o nome da matéria-prima.')
+    }
+    const cost = Number(material.costPerKg)
+    const minimum = Number(material.minimumStockKg)
+    if (!Number.isFinite(cost) || cost < 0 || !Number.isFinite(minimum) || minimum < 0) {
+      throw new Error('Custo e estoque mínimo devem ser valores válidos.')
+    }
+    const db = getDatabase()
+    db.run('UPDATE raw_materials SET name = ?, cost_per_kg = ?, minimum_stock_kg = ? WHERE id = ?',
+      [String(material.name).trim(), cost, minimum, material.id])
+    saveDatabase()
+    return { success: true }
+  })
+
+  ipcMain.handle('stock:move', (_event, movement) => {
+    const db = getDatabase()
+    const qty = Number(movement?.quantityKg)
+    const cost = Number(movement?.unitCost ?? 0)
+    if (!movement?.materialId || !['entrada', 'saida'].includes(movement.movementType)) {
+      throw new Error('Movimentação inválida.')
+    }
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(cost) || cost < 0) {
+      throw new Error('Informe quantidade e custo válidos.')
+    }
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(movement.movementDate || '')) {
+      throw new Error('Informe uma data válida.')
+    }
+    const current = db.exec('SELECT stock_kg, cost_per_kg FROM raw_materials WHERE id = ?', [movement.materialId])
+    if (!current.length || !current[0].values.length) throw new Error('Matéria-prima não encontrada.')
+    const oldStock = Number(current[0].values[0][0] || 0)
+    const oldCost = Number(current[0].values[0][1] || 0)
+    if (movement.movementType === 'saida' && qty > oldStock) {
+      throw new Error('Saldo insuficiente para esta saída.')
+    }
+    const newStock = movement.movementType === 'entrada' ? oldStock + qty : oldStock - qty
+    const newCost = movement.movementType === 'entrada' && newStock > 0
+      ? ((oldStock * oldCost) + (qty * cost)) / newStock : oldCost
+    db.run('BEGIN TRANSACTION')
+    try {
+      db.run('UPDATE raw_materials SET stock_kg = ?, cost_per_kg = ? WHERE id = ?',
+        [newStock, newCost, movement.materialId])
+      db.run(`INSERT INTO stock_movements
+        (material_id, movement_type, quantity_kg, unit_cost, movement_date, description)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [movement.materialId, movement.movementType, qty, movement.movementType === 'entrada' ? cost : oldCost,
+          movement.movementDate, movement.description || ''])
+      db.run('COMMIT')
+    } catch (error) {
+      db.run('ROLLBACK')
+      throw error
+    }
+    saveDatabase()
+    return { success: true, newStock, newCost }
+  })
+
   ipcMain.handle('production:save', (_event, record) => {
     const db = getDatabase()
 
