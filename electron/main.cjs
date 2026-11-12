@@ -50,7 +50,7 @@ function registerDatabaseHandlers() {
     if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(cost) || cost < 0) {
       throw new Error('Informe quantidade e custo válidos.')
     }
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(movement.movementDate || '')) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(movement.movementDate || '')) {
       throw new Error('Informe uma data válida.')
     }
     const current = db.exec('SELECT stock_kg, cost_per_kg FROM raw_materials WHERE id = ?', [movement.materialId])
