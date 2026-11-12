@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Save, X, Trash2, Wheat, Package, Layers3, BadgeDollarSign, Scale, Search, RefreshCw } from 'lucide-react'
+import { Plus, Pencil, Save, X, Trash2, Wheat, Package, Layers3, BadgeDollarSign, Search } from 'lucide-react'
 import { formatCurrency, formatNumber } from './utils/calculations'
 
 function Products() {
