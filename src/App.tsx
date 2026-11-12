@@ -1,3 +1,4 @@
+import Stock from './Stock'
 import Production from './Production'
 import { useState } from 'react'
 import {
@@ -158,8 +159,10 @@ function App() {
                 </article>
               </section>
             </>
-          ) : activePage === 'production' ? (
+         ) : activePage === 'production' ? (
   <Production />
+) : activePage === 'stock' ? (
+  <Stock />
 ) : (
             <section className="panel module-placeholder">
               <div className="placeholder-icon"><ClipboardList size={30} /></div>
