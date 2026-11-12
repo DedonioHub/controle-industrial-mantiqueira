@@ -1311,7 +1311,7 @@ h1 {
 }
 
 .overview-flow {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -1872,5 +1872,18 @@ h1 {
   .stock-info-row strong {
     max-width: 100%;
     text-align: left;
+  }
+}
+
+
+@media (max-width: 1200px) {
+  .overview-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .overview-flow {
+    grid-template-columns: 1fr;
   }
 }
